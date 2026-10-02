@@ -355,6 +355,7 @@
   .au-bulk summary{cursor:pointer;color:var(--brand-ink);font-weight:600;}
   .au-bulk form{display:flex;flex-direction:column;gap:8px;margin-top:8px;align-items:flex-start;}
   .au-bulk textarea{width:100%;box-sizing:border-box;font-size:13px;}
+  .au-sync{margin:0 0 10px;font-size:12.5px;color:var(--steel);}
   .au-ol{margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:var(--ink);}
   .tb-user{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px;}
   .tb-user-name{font-size:12.5px;color:var(--steel);white-space:nowrap;}
@@ -370,7 +371,18 @@
   .inv-auto p{margin:2px 0 0;font-size:11.5px;color:var(--steel);}
   .inv-fs{border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;margin:0;display:flex;flex-direction:column;gap:10px;}
   .inv-fs legend{font-size:12px;font-weight:700;color:var(--ink);padding:0 4px;}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0C4A6E;color:#fff;padding:10px 16px;border-radius:8px;font-size:12.5px;z-index:50;}
+  .otmap-presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  .otmap-src{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .otmap-table select{border:1px solid var(--line-strong);border-radius:6px;padding:6px 8px;font-size:12.5px;background:var(--panel);color:var(--ink);}
+  .otmap-table tr.off-row td{opacity:.55;}
+  .otnum{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--brand-dim);color:var(--brand-ink);font-size:11px;font-weight:700;margin-right:7px;}
+  .otcode{margin-left:7px;padding:1px 6px;border-radius:5px;background:var(--off);color:var(--steel);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;white-space:nowrap;}
+  th .otcode{display:block;width:max-content;margin:3px auto 0;}
+  .otmap-actions{justify-content:flex-start;align-items:center;gap:8px;margin-top:12px;}
+  tr.off-row td{opacity:.55;}
+  .otmap-conv{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;}
+  .otmap-miss{color:var(--danger);font-weight:600;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0C4A6E;color:#fff;padding:10px 16px;border-radius:8px;font-size:12.5px;z-index:120;}
 </style>
 </head>
 <body>
@@ -382,22 +394,39 @@ function claudeCap(name){
   if(!_capCache[name]) _capCache[name] = (window.claude && window.claude.use) ? window.claude.use(name).catch(()=>null) : Promise.resolve(null);
   return _capCache[name];
 }
-async function saveFile(filename, data){
+// claude.ai 아티팩트 화면 안에서 열렸는지 (이 경우 일반 다운로드 링크는 막혀 있다)
+const IN_CLAUDE_VIEWER = !!(window.claude && window.claude.use) && window.top!==window.self;
+// 저장 결과를 돌려준다: {ok:true} 또는 {ok:false, reason:'…'}. 실패 이유는 부르는 쪽이 화면에 보여준다.
+async function saveFile(filename, data, opts){
+  opts = opts || {};
   const dl = await claudeCap('downloads');
-  if(!dl){
-    // claude.ai 밖(GitHub Pages, 내 PC에서 연 파일 등)에서는 브라우저 기본 다운로드를 쓴다
+  let res;
+  if(dl){
+    try{ await dl.save({filename, data}); res = {ok:true}; }
+    catch(e){
+      const code = e && e.code;
+      res = {ok:false, code, reason: code==='declined' ? '저장 확인 창에서 취소했습니다. 다시 눌러 "저장"을 선택해주세요.'
+        : code==='rate_limited' ? '이미 저장 확인 창이 열려 있습니다. 그 창에서 저장을 눌러주세요.'
+        : `저장하지 못했습니다 (${code||'오류'}).`};
+    }
+  } else if(IN_CLAUDE_VIEWER){
+    res = {ok:false, code:'unavailable', reason:'이 화면(claude.ai 앱 안 보기)에서는 파일 저장이 허용되지 않습니다. 웹 브라우저로 claude.ai를 열거나 Vercel 주소에서 받아주세요.'};
+  } else {
+    // claude.ai 밖(Vercel, 내 PC에서 연 파일 등)에서는 브라우저 기본 다운로드를 쓴다
     try{
       const blob = data instanceof Blob ? data : new Blob([data]);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename;
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.rel = 'noopener';
       document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    }catch(err){ toast('파일을 저장하지 못했습니다: '+(err.message||err), {error:true}); }
-    return;
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+      res = {ok:true};
+    }catch(err){ res = {ok:false, reason:'파일을 저장하지 못했습니다: '+(err.message||err)}; }
   }
-  try{ await dl.save({filename, data}); }
-  catch(e){ if(e && e.code!=='declined') toast('저장하지 못했습니다 ('+(e.code||'오류')+')', {error:true}); }
+  if(!res.ok && !opts.quiet && res.code!=='declined') toast(res.reason, {error:true});
+  return res;
 }
+// 저장 기능을 미리 준비해 둔다 (처음 누를 때 기다리는 시간 없애기)
+if(window.claude && window.claude.use) setTimeout(()=>{ claudeCap('downloads'); }, 0);
 /* window.storage: 내 계정 전용 db 저장소(data/users/<id>/kv) + 브라우저 저장소 백업 */
 (function(){
   const CHUNK = 150000;
@@ -682,7 +711,7 @@ function saveSiteRegistryBg(){
     toast('현장 정보 저장에 실패했습니다: '+(err.message||err));
   });
 }
-function normName(s){ return String(s==null?'':s).replace(/\s+/g,'').trim(); }
+function normName(s){ return String(s==null?'':s).normalize('NFC').replace(/\s+/g,'').trim(); }
 
 // A generic 사원명부 parser — does not assume the header sits on row 1, the exact
 // label text, or which sheet holds the data. It scans every sheet and the first
@@ -704,7 +733,7 @@ function parseRoster(wb){
         const label = String(cell.v).trim();
         if(!label) continue;
         headers[C] = label;
-        if(nameCol==null && /성\s*명|이\s*름|직원명|사원명|근로자명/.test(label)) nameCol = C;
+        if(nameCol==null && /^(성\s*명|이\s*름|직원\s*명|사원\s*명|근로자\s*명|성\s*함)\s*\d?$/.test(label)) nameCol = C;
       }
       if(nameCol==null) continue; // not the header row — try the next one
 
@@ -712,8 +741,8 @@ function parseRoster(wb){
       for(let DR=R+1; DR<=range.e.r; DR++){
         const nc = ws[XLSX.utils.encode_cell({r:DR,c:nameCol})];
         if(!nc || nc.v==null || String(nc.v).trim()==='') continue;
-        const name = String(nc.v).trim();
-        if(!isPlausibleName(name)) continue; // skip stray/blank/note rows
+        const name = String(nc.v).normalize('NFC').trim();
+        if(!isPlausibleName(name) || /^(성명|이름|합계|소계|직원명|사원명)$/.test(name)) continue; // skip stray/blank/note rows
         const fields = {};
         for(const c in headers){
           if(+c===nameCol) continue;
@@ -767,7 +796,42 @@ function toast(msg, opts){
 
 const ZENIEL_LOGO = 'data:image/png;base64,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';
 /* ---------------- render shell ---------------- */
+// 화면을 다시 그려도 목록 스크롤과 입력 중인 칸이 그대로 있게 한다
+function captureView(){
+  const scrolls = [];
+  document.querySelectorAll('#app .emp-wrap, #app .tablewrap, #app .gridwrap, #app .pick-list, #app .inv-meta, #app .files-table').forEach((el,i)=>{
+    if(el.scrollTop || el.scrollLeft) scrolls.push({key: (el.closest('[data-scroll-key]')||{dataset:{}}).dataset.scrollKey || ('#' + i), top: el.scrollTop, left: el.scrollLeft});
+  });
+  const a = document.activeElement;
+  let focus = null;
+  if(a && a!==document.body && document.getElementById('app').contains(a)){
+    if(a.id) focus = {sel: '#' + CSS.escape(a.id)};
+    else {
+      const attrs = ['data-inv','data-rx','data-w','data-k','data-i','data-name','data-f','data-id','data-to','name'].filter(n=>a.hasAttribute(n));
+      if(attrs.length) focus = {sel: a.tagName.toLowerCase() + attrs.map(n=>`[${n}="${CSS.escape(a.getAttribute(n))}"]`).join('')};
+    }
+    if(focus && typeof a.selectionStart==='number'){ try{ focus.start = a.selectionStart; focus.end = a.selectionEnd; }catch(_){} }
+  }
+  return {x: window.scrollX, y: window.scrollY, scrolls, focus};
+}
+function restoreView(v){
+  if(!v) return;
+  const els = document.querySelectorAll('#app .emp-wrap, #app .tablewrap, #app .gridwrap, #app .pick-list, #app .inv-meta, #app .files-table');
+  v.scrolls.forEach(sc=>{ els.forEach((el,i)=>{ const key = (el.closest('[data-scroll-key]')||{dataset:{}}).dataset.scrollKey || ('#' + i); if(key === sc.key){ el.scrollTop = sc.top; el.scrollLeft = sc.left; } }); });
+  if(v.focus){
+    try{
+      const el = document.querySelector('#app ' + v.focus.sel);
+      if(el && el!==document.activeElement){ el.focus({preventScroll:true}); if(v.focus.start!=null && el.setSelectionRange){ try{ el.setSelectionRange(v.focus.start, v.focus.end); }catch(_){} } }
+    }catch(_){}
+  }
+  if(window.scrollX!==v.x || window.scrollY!==v.y) window.scrollTo(v.x, v.y);
+}
 function render(){
+  const __view = captureView();
+  renderInner();
+  restoreView(__view);
+}
+function renderInner(){
   const app = document.getElementById('app');
   const gate = (typeof authGateHtml==='function') ? authGateHtml() : null;
   if(gate!=null){ app.innerHTML = gate; return; }
@@ -831,6 +895,7 @@ const RULE_TABS = [
   {k:'add',   l:'새 규칙 추가',         s:'규칙추가'},
   {k:'ot',    l:'연장/야간 계산 기준',   s:'연장·야간'},
   {k:'field', l:'열별 입력 규칙',       s:'열별입력'},
+  {k:'otmap', l:'시간외 항목 규칙',      s:'시간외항목'},
 ];
 const deepCopy = o => JSON.parse(JSON.stringify(o));
 
@@ -838,7 +903,7 @@ function selectedSite(){ return state.siteRegistry.find(s=>s.id===state.selected
 
 function initRun(siteId){
   const site = state.siteRegistry.find(s=>s.id===siteId);
-  const c = site ? ensureSiteRules(site).combined : {rules:[], fieldRules:[], weekendDays:[0,6], overtimePossible:true, nightPossible:true, offDays:''};
+  const c = site ? ensureSiteRules(site).combined : {rules:[], fieldRules:[], weekendDays:[0,6], overtimePossible:true, nightPossible:true, offDays:'', otMap: defaultOtMap()};
   const prevTab = state.run ? state.run.tab : 'emps';
   state.run = {
     siteId: siteId||null,
@@ -848,6 +913,7 @@ function initRun(siteId){
     overtimePossible: c.overtimePossible!==false,
     nightPossible: c.nightPossible!==false,
     offDays: c.offDays==null ? '' : String(c.offDays),
+    otMap: deepCopy(c.otMap || defaultOtMap()),
     emps: {},
     dirty: false,
     tab: prevTab,
@@ -867,6 +933,8 @@ function useRunSettings(){
   o.fieldRules = r.fieldRules; o.weekendDays = r.weekendDays;
   o.overtimePossible = r.overtimePossible; o.nightPossible = r.nightPossible;
   o.nightThresholdMin = NIGHT_THRESHOLD_MIN;
+  state.otMap = r.otMap || defaultOtMap();
+  reapplyOtRules();
 }
 
 // 직원 한 명의 실제 적용값 = 이번 변환 기본값 + 그 직원만 바꾼 값
@@ -919,6 +987,10 @@ function rctx(ctx){
   const c = ensureSiteRules(site).combined;
   return c;
 }
+// 시간외 항목 규칙은 이번 변환에도 바로 반영 (직원별 설정을 손댔어도)
+function syncRunOtMap(c){
+  if(state.run && state.run.siteId===(state.selectedSiteId||null)) state.run.otMap = deepCopy(c.otMap || defaultOtMap());
+}
 function rctxChanged(ctx){
   if(ctx==='run'){ state.run.dirty = true; return; }
   const site = selectedSite();
@@ -964,6 +1036,18 @@ function secHours(ctx, c, on){
 }
 function secRuleList(ctx, c, on){
   const rules = c ? c.rules : [];
+  const om = (c && c.otMap) || defaultOtMap();
+  const otPreset = OT_PRESETS.find(p=>otMapKey(p.map())===otMapKey(om));
+  const otList = `
+    <h2 style="margin-top:22px;">시간외 항목 규칙 <span class="pill ${otPreset?'good':'warn'}" style="margin-left:6px;">${otPreset?escapeHtml(otPreset.l):'직접 설정'}</span></h2>
+    <p class="desc">시간외수당 5개 항목을 근태표의 어느 칸에서 가져오는지입니다. ${otDraftDirty(c)?'<b style="color:var(--warn);">적용 안 된 변경이 있습니다.</b> ':''}</p>
+    <div class="tablewrap"><table class="list">
+      <thead><tr><th>시간외수당 항목 · 코드</th><th>가져오는 값</th><th style="text-align:right;"><button type="button" class="btn sm" data-rx="tab" data-ctx="${ctx}" data-v="otmap">수정</button></th></tr></thead>
+      <tbody>
+        ${OT_CATS.map((cat,i)=>{ const r = om[cat]; const code = (OT_CATEGORIES.find(x=>x.label===cat)||{}).code||'';
+          return `<tr class="${r&&r.src?'':'off-row'}"><td><span class="otnum">${i+1}</span><b>${cat}</b><span class="otcode">${code}</span></td><td colspan="2">${escapeHtml(otRuleText(r))} → ${cat}</td></tr>`; }).join('')}
+      </tbody>
+    </table></div>`;
   return `
     <h2>등록된 규칙 <span class="pill brand" style="margin-left:6px;">${rules.length}개</span></h2>
     <p class="desc">근태표 셀 텍스트를 어떻게 판정할지 정합니다.</p>
@@ -977,7 +1061,8 @@ function secRuleList(ctx, c, on){
           <td style="text-align:right;"><button type="button" class="btn sm danger" data-rx="del-rule" data-ctx="${ctx}" data-id="${r.id}" ${on?'':'disabled'}>삭제</button></td>
         </tr>`).join('')}
       </tbody>
-    </table></div>`}`;
+    </table></div>`}
+    ${c ? otList : ''}`;
 }
 function secRuleAdd(ctx, c, on){
   const dis = on?'':'disabled';
@@ -1012,6 +1097,98 @@ function secOt(ctx, c, on){
     <label class="chk" style="margin-bottom:6px;"><input type="checkbox" data-rx="ot-possible" data-ctx="${ctx}" ${dis} ${c&&c.overtimePossible!==false?'checked':''}/>연장근무 가능성 있음 — 실 근무시간이 소정근로시간(일)을 넘으면 그 초과분을 연장근무로 계산</label>
     <label class="chk"><input type="checkbox" data-rx="night-possible" data-ctx="${ctx}" ${dis} ${c&&c.nightPossible!==false?'checked':''}/>야간근무 가능성 있음 — 퇴근시간이 22:00 이후면 그만큼 야간근무로 계산</label>
     ${ctx==='run'?`<div class="notice" style="margin-top:10px;">여기 값은 이번 변환의 기본값입니다. 특정 직원만 다르게 하려면 "직원별 설정" 탭에서 바꿔주세요.</div>`:''}`;
+}
+// 시간외 항목 규칙 편집본: "적용"을 눌러야 현장 규칙에 저장되고 계산에 반영된다
+function otMapKey(m){ return OT_CATS.map(cat=>{ const r=(m||{})[cat]||{}; return [cat, r.src||'', r.src==='@sum'||r.src==='@custom'?(r.col||''):'', r.src==='@sum'?'':(r.days||''), r.conv||'', r.conv==='day'?String(r.hours||8):''].join('|'); }).join(';'); }
+function otDraftOf(c){
+  const sid = state.selectedSiteId||null;
+  if(state.otDraft && state.otDraft.siteId===sid) return state.otDraft.map;
+  return (c && c.otMap) || defaultOtMap();
+}
+function otDraftEdit(c){
+  const sid = state.selectedSiteId||null;
+  if(!state.otDraft || state.otDraft.siteId!==sid) state.otDraft = {siteId:sid, map: deepCopy((c && c.otMap) || defaultOtMap())};
+  return state.otDraft.map;
+}
+function otDraftDirty(c){
+  const sid = state.selectedSiteId||null;
+  return !!(state.otDraft && state.otDraft.siteId===sid && otMapKey(state.otDraft.map)!==otMapKey((c && c.otMap) || defaultOtMap()));
+}
+function otRuleText(r){
+  if(!r || !r.src) return '사용 안 함';
+  if(r.src==='@sum') return `"${r.col||'?'}" 합계 행${r.conv==='day' ? ` × ${r.hours||8}시간 × 60분 (1일 칸에 입력)` : ''}`;
+  const col = r.src==='@night' ? '퇴근시간 22시 이후' : r.src==='@custom' ? `"${r.col||'?'}" 칸` : `${r.src} 칸`;
+  return `${r.days==='weekday'?'평일':r.days==='holiday'?'휴일':'모든 날'}의 ${col}${r.conv==='day' ? ` · 근무한 날 × ${r.hours||8}시간(${Math.round((parseFloat(r.hours)||8)*60)}분)` : ''}`;
+}
+function otSrcOptions(r, headers, sumLabels){
+  const opt = (v, l, sel) => `<option value="${escapeHtml(v)}" ${sel?'selected':''}>${escapeHtml(l)}</option>`;
+  const special = ['@night','@custom','','@sum'];
+  const sums = [...(sumLabels||[])]; if(r.src==='@sum' && r.col && !sums.includes(r.col)) sums.push(r.col);
+  const sumGroup = sums.length ? `<optgroup label="근태표 아래 합계 행 (일수)">${sums.map(l=>opt('@sum:'+l, `${l} (합계 행)`, r.src==='@sum' && r.col===l)).join('')}</optgroup>` : '';
+  let out = '';
+  if(headers.length){
+    const resolved = special.includes(r.src) ? null : otResolveHeader(r, headers);
+    out += `<optgroup label="이 현장 근태표의 칸">${headers.map(h=>opt(h, h, resolved===h)).join('')}</optgroup>`;
+    if(!special.includes(r.src) && !resolved) out += opt(r.src, `${r.src} (근태표에 없음)`, true);
+    out += `<optgroup label="그 밖에">`;
+  } else {
+    out += OT_SOURCES.filter(o=>!special.includes(o.v)).map(o=>opt(o.v, o.l, r.src===o.v)).join('');
+    if(!special.includes(r.src) && !OT_SOURCES.some(o=>o.v===r.src)) out += opt(r.src, r.src, true);
+  }
+  out += OT_SOURCES.filter(o=>special.includes(o.v)).map(o=>opt(o.v, o.l, r.src===o.v)).join('');
+  if(headers.length) out += `</optgroup>`;
+  return sumGroup + out;
+}
+function secOtMap(ctx, c, on){
+  const dis = on?'':'disabled';
+  const map = otDraftOf(c);
+  const dirty = otDraftDirty(c);
+  const headers = siteOtHeaders(c);
+  const missing = otMissingRules(map);
+  const presetOf = OT_PRESETS.find(p=>otMapKey(p.map())===otMapKey(map));
+  return `
+    <h2>시간외 항목 규칙</h2>
+    <p class="desc">현장마다 근태표 양식이 달라, 시간외수당의 5개 항목을 근태표의 어느 칸에서 가져올지 정합니다. 여기서 나뉜 값이 <b>시간외수당 엑셀</b>에 들어가고, 같은 값이 <b>인보이스</b>(연장근무 = 평일연장+휴일연장, 야간근무 = 평일심야+휴일심야, 휴일근무 = 휴일근무)에도 들어갑니다.</p>
+    <div class="otmap-presets">
+      <span class="fld-label" style="margin:0;">빠른 설정</span>
+      ${OT_PRESETS.map(p=>`<button type="button" class="btn sm ${presetOf&&presetOf.k===p.k?'primary':''}" data-rx="otmap-preset" data-ctx="${ctx}" data-v="${p.k}" ${dis} title="${escapeHtml(p.d)}">${escapeHtml(p.l)}</button>`).join('')}
+      ${presetOf ? `<span class="pill good">${escapeHtml(presetOf.l)}${dirty?' 선택':' 적용 중'}</span>` : '<span class="pill warn">직접 설정</span>'}
+      ${dirty ? '<span class="pill warn">⚠ 아직 적용 안 됨 — 아래 "적용"을 눌러주세요</span>' : ''}
+    </div>
+    <div class="tablewrap"><table class="list otmap-table">
+      <thead><tr><th>시간외수당 항목 · 코드</th><th>근태표에서 가져올 칸</th><th>날짜</th><th>설명</th></tr></thead>
+      <tbody>
+        ${OT_CATS.map((cat,i)=>{
+          const r = map[cat] || {src:'', days:'all'};
+          const code = (OT_CATEGORIES.find(x=>x.label===cat)||{}).code||'';
+          return `<tr class="${r.src?'':'off-row'}">
+            <td><span class="otnum">${i+1}</span><b>${cat}</b><span class="otcode">${code}</span></td>
+            <td><div class="otmap-src">
+              <select data-rx="otmap" data-ctx="${ctx}" data-cat="${cat}" data-f="src" ${dis} aria-label="${cat} 가져올 칸">${otSrcOptions(r, headers, cat==='휴일근무' || r.src==='@sum' ? siteOtSumLabels(c) : [])}</select>
+              ${r.src==='@custom' ? `<input class="cellin" data-rx="otmap" data-ctx="${ctx}" data-cat="${cat}" data-f="col" value="${escapeHtml(r.col||'')}" placeholder="예: 잔업시간" list="otHeaderList" ${dis} aria-label="${cat} 칸 이름" />` : ''}
+            </div></td>
+            <td><select data-rx="otmap" data-ctx="${ctx}" data-cat="${cat}" data-f="days" ${dis||(r.src&&r.src!=='@sum'?'':'disabled')} aria-label="${cat} 날짜">${OT_DAYS.map(o=>`<option value="${o.v}" ${r.days===o.v?'selected':''}>${o.l}</option>`).join('')}</select>
+              ${cat==='휴일근무' ? `<div class="otmap-conv"><select data-rx="otmap" data-ctx="${ctx}" data-cat="${cat}" data-f="conv" ${dis||(r.src?'':'disabled')} aria-label="휴일근무 환산">
+                  <option value="day" ${r.conv==='day'?'selected':''}>${r.src==='@sum'?'일수':'근무한 날'} × 시간</option><option value="" ${r.conv!=='day'?'selected':''}>${r.src==='@sum'?'값 그대로(분)':'칸의 시간 그대로'}</option></select>
+                ${r.conv==='day' ? `<input type="number" min="1" max="24" step="0.5" class="cellin" style="width:58px;" data-rx="otmap" data-ctx="${ctx}" data-cat="${cat}" data-f="hours" value="${escapeHtml(String(r.hours||8))}" ${dis} aria-label="하루 환산 시간" /><span class="muted">시간</span>` : ''}</div>` : ''}</td>
+            <td class="muted" style="font-size:12px;">${missing.find(m=>m.cat===cat) ? `<span class="otmap-miss">⚠ 이번 근태표에 "${escapeHtml(missing.find(m=>m.cat===cat).col)}" 칸이 없습니다${missing.find(m=>m.cat===cat).night?' — 퇴근시간(22시 이후)으로 계산':' — 0으로 들어갑니다'}</span><br>` : ''}${!r.src ? '시간외수당·인보이스에 넣지 않음' : r.src==='@sum' ? `"${escapeHtml(r.col||'?')}" 합계 행${r.conv==='day'?` (일수 × ${r.hours||8}시간 × 60분)`:''} → ${cat} · 시간외수당 파일 1일 칸에 입력` : `${r.days==='weekday'?'평일':r.days==='holiday'?'휴일':'모든 날'}의 ${r.src==='@night'?'22시 이후 퇴근 시간':r.src==='@custom'?`"${escapeHtml(r.col||'?')}" 칸`:`${r.src} 칸`} → ${cat}${r.conv==='day' ? ` (근무한 날 1일 = ${r.hours||8}시간 = ${Math.round((parseFloat(r.hours)||8)*60)}분)` : ''}`}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+    <div class="row-actions otmap-actions">
+      <button type="button" class="btn sm primary" data-rx="otmap-apply" data-ctx="${ctx}" ${on&&dirty?'':'disabled'}>적용</button>
+      <button type="button" class="btn sm ghost" data-rx="otmap-reset" data-ctx="${ctx}" ${dis} title="5개 항목을 기본 규칙(연장근무·야간근무·휴일근무 칸)으로 되돌립니다">초기화</button>
+      ${dirty ? `<button type="button" class="btn sm ghost" data-rx="otmap-cancel" data-ctx="${ctx}">변경 취소</button>` : ''}
+      <span class="muted" style="font-size:12px;">${dirty ? '바꾼 내용은 "적용"을 눌러야 저장되고 시간외수당·인보이스 값이 다시 계산됩니다.' : '저장된 규칙이 사용 중입니다.'}</span>
+    </div>
+    <datalist id="otHeaderList">${headers.map(h=>`<option value="${escapeHtml(h)}"></option>`).join('')}</datalist>
+    <div class="notice" style="margin-top:10px;">
+      ${headers.length
+        ? `이 현장 근태표의 칸 ${headers.length}개${c&&c.otHeadersAt?` (${c.otHeadersAt} 분석 기준)`:''}: <b>${headers.map(escapeHtml).join(', ')}</b> — "가져올 칸" 목록이 이 칸들로 바뀌었습니다. 다음 달 근태표에 새 칸이 생기면 자동으로 더해집니다.
+           ${c&&(c.otHeaders||[]).length&&on?` <button type="button" class="btn sm" data-rx="otmap-clear-headers" data-ctx="${ctx}" style="margin-left:6px;">칸 목록 비우기</button>`:''}`
+        : '아직 이 현장 근태표를 분석하지 않아 기본 칸(연장근무·야간근무·휴일근무)만 보입니다. 월근태일괄등록에서 이 현장 근태표를 한 번 분석하면, 그 근태표의 실제 칸 이름으로 목록이 바뀝니다.'}
+      <br>휴일 = "연장/야간 계산 기준" 탭의 휴일 요일 + 법정 공휴일. 야간근무 칸이 없거나 비어 있으면 퇴근시간(22시 이후)으로 계산합니다.</div>`;
 }
 function secField(ctx, c, on){
   const dis = on?'':'disabled';
@@ -1139,6 +1316,7 @@ function viewRules(){
   else if(tab==='add')   body = secRuleAdd('site', c, on);
   else if(tab==='ot')    body = secOt('site', c, on);
   else if(tab==='field') body = secField('site', c, on);
+  else if(tab==='otmap') body = secOtMap('site', c, on);
   return `
   <div class="page-head">
     <h1>규칙 관리</h1>
@@ -1210,6 +1388,31 @@ function rxClick(e){
     });
     recomputeAfterSettings(); render(); toast(`${names.length}명에게 일괄 적용했습니다.`); return;
   }
+  if(act==='otmap-clear-headers'){
+    const c = rctx(ctx); if(!c) return;
+    delete c.otHeaders; delete c.otHeadersAt; rctxChanged(ctx); render();
+    toast('칸 목록을 비웠습니다. 다음에 근태표를 분석하면 다시 채워집니다.'); return;
+  }
+  if(act==='otmap-preset'){
+    const c = rctx(ctx); if(!c) return;
+    const p = OT_PRESETS.find(x=>x.k===el.dataset.v); if(!p) return;
+    state.otDraft = {siteId: state.selectedSiteId||null, map: p.map()}; render();
+    toast(`"${p.l}"을(를) 골랐습니다. "적용"을 누르면 저장됩니다.`); return;
+  }
+  if(act==='otmap-apply'){
+    const c = rctx(ctx); if(!c) return;
+    c.otMap = deepCopy(otDraftOf(c)); state.otDraft = null;
+    rctxChanged(ctx); syncRunOtMap(c); if(state.analyzed){ useRunSettings(); rebuildGrids(); } render();
+    toast(state.analyzed ? '시간외 항목 규칙을 적용했습니다. 시간외수당·인보이스 값을 다시 계산했습니다.' : '시간외 항목 규칙을 저장했습니다.'); return;
+  }
+  if(act==='otmap-reset'){
+    const c = rctx(ctx); if(!c) return;
+    state.otDraft = {siteId: state.selectedSiteId||null, map: defaultOtMap()}; render();
+    toast('기본 규칙으로 되돌렸습니다. "적용"을 누르면 저장됩니다.'); return;
+  }
+  if(act==='otmap-cancel'){ state.otDraft = null; render(); toast('바꾼 내용을 취소했습니다.'); return;
+  }
+  if(act==='goto-otmap'){ state.page='rules'; state.rulesTab='otmap'; render(); return; }
   if(act==='goto-rules'){ state.page='rules'; state.rulesTab='hours'; render(); return; }
   if(act==='emp-reset'){ delete ensureRun().emps[normName(el.dataset.name)]; recomputeAfterSettings(); render(); return; }
 
@@ -1254,6 +1457,16 @@ function rxChange(e){
     document.getElementById(ctx+'-frCopyWrap').hidden = v!=='copy';
     document.getElementById(ctx+'-frFixedWrap').hidden = v!=='fixed';
     return;
+  }
+  if(act==='otmap'){
+    const c = rctx(ctx); if(!c) return;
+    const m = otDraftEdit(c);
+    const cat = el.dataset.cat, f = el.dataset.f, v = el.value.trim();
+    const prev = m[cat]||{src:'',days:'all'};
+    if(f==='src' && v.startsWith('@sum:')) m[cat] = {...prev, src:'@sum', col: v.slice(5), days:'all', conv: 'day', hours: prev.hours||8};
+    else if(f==='src' && prev.src==='@sum') m[cat] = {...prev, src: v, col: v==='@custom' ? '' : prev.col};
+    else m[cat] = {...prev, [f]: v};
+    render(); return;
   }
   if(act==='emp-check'){
     const sel = state.runSelected || (state.runSelected = new Set());
@@ -2308,15 +2521,21 @@ async function ensureOcrRecords(s){
   const images = s.kind==='pdf' ? s.pages : [s.thumb];
   const merged = [];
   const allNames = [];
-  for(const img of images){
-    const result = await ocrExtractAttendance(img);
+  let unnamedPages = 0;
+  for(let pi=0; pi<images.length; pi++){
+    const result = await ocrExtractAttendance(images[pi]);
     (result.names||[]).forEach(n=>{ if(!allNames.includes(n)) allNames.push(n); });
-    merged.push(...result.records);
+    if(result.records.some(r=>!r.name)) unnamedPages++;
+    merged.push(...result.records.map(r=>({...r, page: pi+1})));
   }
-  // 직원이 한 명뿐인 파일만 이름 칸을 채워 쓸 수 있게 한다. 여러 명이면 사람마다 읽힌 이름을 그대로 쓴다.
+  // 이름 칸으로 한꺼번에 덮어쓰는 것은 "직원 한 명 + 모든 페이지에서 그 이름이 읽힌" 파일만.
+  // 여러 명이거나 이름 못 읽은 페이지가 있으면 사람마다 읽힌 이름을 그대로 쓰고, 이름 없는 기록은 따로 알린다.
   s.detectedNames = allNames.map(matchRosterName);
-  if(allNames.length===1 && !s.manualName) s.manualName = matchRosterName(allNames[0]);
-  if(allNames.length>1) s.manualName = '';
+  s.unnamedPages = unnamedPages;
+  s.singlePerson = allNames.length===1 && unnamedPages===0;
+  if(s.singlePerson && !s.manualName) s.manualName = matchRosterName(allNames[0]);
+  if(!s.singlePerson && allNames.length) s.manualName = '';
+  if(unnamedPages && allNames.length) toast(`${s.file.name}: ${unnamedPages}쪽에서 직원명을 읽지 못해 그 쪽 기록은 넣지 않았습니다. 이름이 보이게 다시 찍거나 쪽을 나눠 올려주세요.`, {error:true});
   s._ocrRaw = merged;
   s._ocrRecords = fitToPeriod(merged); // 대상 월 기준, 이름은 아직 확정 전
   const withNames = applyManualNameOverride(s, s._ocrRecords);
@@ -2326,8 +2545,9 @@ async function ensureOcrRecords(s){
   return withNames;
 }
 function applyManualNameOverride(s, rawRecords){
-  const multi = (s.detectedNames||[]).length > 1;
-  const finalName = !multi && s.manualName && s.manualName.trim() ? s.manualName.trim() : null;
+  // 직접 입력한 이름은 "한 사람짜리 파일"이거나 이름을 하나도 못 읽은 파일에만 쓴다
+  const usable = s.singlePerson || (s.detectedNames||[]).length===0;
+  const finalName = usable && s.manualName && s.manualName.trim() ? s.manualName.trim() : null;
   return rawRecords.map(r=>({...r, name: matchRosterName(finalName || r.name)})).filter(r=>r.name);
 }
 
@@ -2397,6 +2617,23 @@ async function analyzeAll(){
 // has to be derived instead from actual worked minutes vs the registered
 // 소정근로시간(일) — gated by the 연장/야간 가능성 toggles in 규칙 관리.
 function deriveOvertimeFromWorkedMinutes(attRecords){
+  return applyOtMap(rawFromWorkedMinutes(attRecords), state.otMap || defaultOtMap(), state.weekendDays);
+}
+// 사진·PDF 근태표: 소정근로시간을 넘은 시간 = "연장근무", 22시 이후 퇴근 = "야간근무" 칸으로 본다
+function rawFromWorkedMinutes(attRecords){
+  const raw = [];
+  attRecords.forEach(rec=>{
+    if(rec.status!=='O' || rec.workedMinutes==null) return;
+    const emp = runEmp(rec.name);
+    const std = emp.day!=='' && emp.day!=null ? Math.round(parseFloat(emp.day)*60) : null;
+    const extra = std!=null && !isNaN(std) ? Math.max(0, rec.workedMinutes - std) : 0;
+    let night = 0;
+    if(rec.to){ const [th,tm] = rec.to.split(':').map(Number); const toMin = th*60+tm; if(toMin > NIGHT_THRESHOLD_MIN) night = toMin - NIGHT_THRESHOLD_MIN; }
+    raw.push({name: rec.name, date: rec.date, cols: {'연장근무': emp.ot ? extra : 0, '야간근무': emp.night ? night : 0}, endNight: emp.night ? night : 0});
+  });
+  return raw;
+}
+function deriveOvertimeFromWorkedMinutesOld(attRecords){
   const out = [];
   attRecords.forEach(rec=>{
     if(rec.status!=='O' || rec.workedMinutes==null) return;
@@ -2427,14 +2664,15 @@ async function analyzeSourceForOvertime(s){
     if(s.kind==='excel'){
       const buf = await s.file.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array', cellDates:false});
-      const known = otKnownForPeriod(wb);
-      s.otRecords = (known || []).map(r=>({...r, name: matchRosterName(r.name)}));
+      s.otRaw = otRawForPeriod(wb) || [];
+      s.otRecords = applyOtMap(s.otRaw, state.otMap || defaultOtMap(), state.weekendDays).map(r=>({...r, name: matchRosterName(r.name)}));
     } else {
       // shares the cached OCR pass with 월근태 (s._ocrRecords) rather than
       // re-running OCR a second time -- works even if only the 시간외수당
       // target was uploaded and the 월근태 pass never ran
       const attRecords = await ensureOcrRecords(s);
-      s.otRecords = deriveOvertimeFromWorkedMinutes(attRecords);
+      s.otRaw = rawFromWorkedMinutes(attRecords);
+      s.otRecords = applyOtMap(s.otRaw, state.otMap || defaultOtMap(), state.weekendDays);
     }
     s.otStatus = 'ok';
   }catch(err){
@@ -2832,7 +3070,7 @@ function syncRosterFromSite(siteId){
 
 function defaultSiteRules(){
   return {
-    combined: {rules:[], fieldRules:[], weekendDays:[0,6], overtimePossible:true, nightPossible:true, offDays:''}, // shared by 월근태일괄등록 + 시간외수당
+    combined: {rules:[], fieldRules:[], weekendDays:[0,6], overtimePossible:true, nightPossible:true, offDays:'', otMap: defaultOtMap()}, // shared by 월근태일괄등록 + 시간외수당
     variablepay: {fieldRules:[]},
   };
 }
@@ -2852,6 +3090,9 @@ function ensureSiteRules(site){
   if(site.rules.combined.overtimePossible==null) site.rules.combined.overtimePossible = true;
   if(site.rules.combined.nightPossible==null) site.rules.combined.nightPossible = true;
   if(site.rules.combined.offDays==null) site.rules.combined.offDays = '';
+  if(!site.rules.combined.otMap) site.rules.combined.otMap = defaultOtMap();
+  { const h = site.rules.combined.otMap.휴일근무; if(h && !('conv' in h)){ h.conv = 'day'; h.hours = 8; } }
+  if(otMapKey(site.rules.combined.otMap)===OT_VP_OLD_KEY()) site.rules.combined.otMap = otVpMap();
   if(!site.rules.variablepay) site.rules.variablepay = {fieldRules:[]};
   return site.rules;
 }
@@ -3074,24 +3315,176 @@ function ensureOvertimeBlock(t, ws, blocks, name){
 // Reuses the exact same 근태확인표 block-detection as tryParseKnownSheet (SSF-based
 // date parsing, distinctness-checked name row) but pulls 연장근무(col0+3) and
 // 퇴근시간(col0+1) instead of a work/off status.
-function tryParseOvertimeSource(wb, nightThresholdMin, weekendDays, selectedPeriod){
-  let allRecords = [];
-  let matchedAny = false;
-
+/* ===== 시간외 항목 규칙 =====
+   근태표에서는 직원·날짜별로 칸마다 시간(분)을 그대로 읽어 두고(원자료),
+   현장 규칙에 따라 평일연장·평일심야·휴일근무·휴일연장·휴일심야로 나눈다. */
+const OT_CATS = ['평일연장','평일심야','휴일근무','휴일연장','휴일심야'];
+const OT_SOURCES = [
+  {v:'연장근무', l:'연장근무 칸'}, {v:'야간근무', l:'야간근무 칸'}, {v:'휴일근무', l:'휴일근무 칸'},
+  {v:'@night', l:'퇴근시간 22시 이후'}, {v:'@custom', l:'칸 이름 직접 입력'}, {v:'', l:'사용 안 함'},
+];
+const OT_DAYS = [{v:'weekday', l:'평일만'}, {v:'holiday', l:'휴일만'}, {v:'all', l:'모든 날'}];
+function defaultOtMap(){ return {
+  평일연장:{src:'연장근무', days:'weekday'}, 평일심야:{src:'야간근무', days:'weekday'},
+  휴일근무:{src:'휴일근무', days:'all', conv:'day', hours:8}, 휴일연장:{src:'연장근무', days:'holiday'}, 휴일심야:{src:'야간근무', days:'holiday'} }; }
+function otVpMap(){ return {
+  평일연장:{src:'연장근무', days:'all'}, 평일심야:{src:'야간근무', days:'all'},
+  휴일근무:{src:'@sum', col:'미사용휴무개수', days:'all', conv:'day', hours:8}, 휴일연장:{src:'', days:'holiday'}, 휴일심야:{src:'', days:'holiday'} }; }
+// 예전 "미사용휴무개수" 설정(토·일 연장을 휴일연장으로 나누던 것)을 새 설정으로 바꿔 준다
+const OT_VP_OLD_KEY = ()=>otMapKey({평일연장:{src:'연장근무', days:'weekday'}, 평일심야:{src:'야간근무', days:'weekday'},
+  휴일근무:{src:'@sum', col:'미사용휴무개수', days:'all', conv:'day', hours:8}, 휴일연장:{src:'연장근무', days:'holiday'}, 휴일심야:{src:'야간근무', days:'holiday'}});
+const OT_PRESETS = [
+  {k:'vp', l:'미사용휴무개수 → 휴일근무', d:'밸류포인트(교대 휴무): 토·일도 근무일이라 연장·야간은 모든 날을 평일연장·평일심야로, 휴일근무 = "미사용휴무개수"(일수) × 8시간 × 60분을 매월 1일 칸에 입력', map: otVpMap},
+  {k:'default', l:'기본', d:'휴일근무는 근태표의 휴일근무 칸 (근무한 날 × 8시간), 휴일의 연장은 휴일연장', map: defaultOtMap},
+  {k:'holAsWork', l:'휴일 연장시간 → 휴일근무', d:'휴일근무 칸이 없는 근태표: 연장근무 칸에 시간이 있는 휴일을 휴일근무로 (근무한 날 × 8시간)', map: ()=>({
+    평일연장:{src:'연장근무', days:'weekday'}, 평일심야:{src:'야간근무', days:'weekday'},
+    휴일근무:{src:'연장근무', days:'holiday', conv:'day', hours:8}, 휴일연장:{src:'', days:'holiday'}, 휴일심야:{src:'야간근무', days:'holiday'} })},
+];
+const otLabel = t => String(t==null?'':t).replace(/\s+/g,'');
+function otColFor(rec, rule){
+  if(!rule || !rule.src) return null;
+  if(rule.src==='@sum'){
+    const want = otLabel(rule.col); if(!want || !rec.sums) return null;
+    const ks = Object.keys(rec.sums); const k = ks.find(x=>x===want) || ks.find(x=>x.includes(want) || want.includes(x));
+    return k ? '@sum:'+k : null;
+  }
+  const keys = Object.keys(rec.cols||{});
+  if(rule.src==='@night') return '@night';
+  const want = otLabel(rule.src==='@custom' ? rule.col : rule.src);
+  if(!want) return null;
+  let k = keys.find(x=>x===want) || keys.find(x=>x.includes(want));
+  if(!k && rule.src==='야간근무') k = keys.find(x=>/야간|심야/.test(x));
+  if(!k && rule.src==='연장근무') k = keys.find(x=>/연장/.test(x) && !/휴일/.test(x));
+  if(!k && rule.src==='휴일근무') k = keys.find(x=>/휴일/.test(x) && !/연장|야간|심야/.test(x));
+  return k || null;
+}
+function otValue(rec, rule){
+  const k = otColFor(rec, rule);
+  if(k==='@night') return rec.endNight||0;
+  if(k && k.startsWith('@sum:')) return rec.sums[k.slice(5)]||0;
+  if(k==null) return 0;   // 규칙의 칸이 근태표에 없으면 0 (화면에 ⚠ 경고). 퇴근시간으로 계산하려면 "퇴근시간 22시 이후"를 고른다
+  return rec.cols[k]||0;
+}
+function applyOtMap(raw, map, weekendDays){
+  map = map || defaultOtMap(); weekendDays = weekendDays || [0,6];
+  const out = [];
+  (raw||[]).forEach(rec=>{
+    const dow = new Date(rec.date+'T00:00:00Z').getUTCDay();
+    const hol = weekendDays.includes(dow) || isKoreanHoliday(rec.date);
+    OT_CATS.forEach(cat=>{
+      const rule = map[cat]; if(!rule || !rule.src) return;
+      const perDay = (parseFloat(rule.hours)||8) * 60;
+      if(rule.src==='@sum'){
+        // 합계 행(일수): 일수 × 8시간 × 60분을 그 달 1일 칸에 한 번에 넣는다
+        const v = otValue(rec, rule); if(!(v>0)) return;
+        const m = Math.round(rule.conv==='day' ? v * perDay : v);
+        if(m>0) out.push({name: rec.name, date: rec.date, category: cat, minutes: m, dayCount: rule.conv==='day' ? v : undefined});
+        return;
+      }
+      if(rule.days==='weekday' && hol) return;
+      if(rule.days==='holiday' && !hol) return;
+      let m = Math.round(otValue(rec, rule));
+      if(m>0 && rule.conv==='day') m = Math.round(perDay);   // 근무한 날 1일 = 8시간 = 480분
+      if(m>0) out.push({name: rec.name, date: rec.date, category: cat, minutes: m});
+    });
+  });
+  return out;
+}
+// 이 규칙이 실제 근태표 칸과 이어지는지 (휴일근무를 근태표 값으로 쓸지 판단)
+function otRuleHasData(cat){
+  const rule = (state.otMap||defaultOtMap())[cat];
+  if(!rule || !rule.src) return false;
+  return state.sources.some(s=>(s.otRaw||[]).some(r=>otColFor(r, rule)!=null));
+}
+function currentOtHeaders(){
+  const set = new Set();
+  state.sources.forEach(s=>{ if(s.kind!=='excel') return; (s.otRaw||[]).forEach(r=>Object.keys(r.cols||{}).forEach(k=>set.add(k))); });
+  return [...set].filter(h=>!/^(출근|퇴근)/.test(h));   // 출근·퇴근 '시각' 칸은 시간 수가 아니므로 제외
+}
+function currentOtSumLabels(){
+  const set = new Set();
+  state.sources.forEach(s=>{ if(s.kind!=='excel') return; (s.otRaw||[]).forEach(r=>Object.keys(r.sums||{}).forEach(k=>set.add(k))); });
+  return [...set];
+}
+// 근태표를 분석할 때마다 그 현장 근태표의 칸 이름을 현장 규칙에 저장 (다음 달에도 목록으로 고를 수 있게)
+function rememberOtHeaders(){
+  const site = selectedSite(); if(!site) return;
+  const hs = currentOtHeaders(), ss = currentOtSumLabels(); if(!hs.length && !ss.length) return;
+  const c = ensureSiteRules(site).combined;
+  const old = c.otHeaders || [], oldS = c.otSumLabels || [];
+  const add = hs.filter(h=>!old.includes(h)), addS = ss.filter(h=>!oldS.includes(h));
+  if(!add.length && !addS.length) return;
+  c.otHeaders = [...old, ...add]; c.otSumLabels = [...oldS, ...addS]; c.otHeadersAt = new Date().toISOString().slice(0,10);
+  saveSiteRegistryBg();
+}
+// 이 현장의 고를 수 있는 칸 목록 (저장된 칸 + 지금 올린 근태표의 칸)
+function siteOtHeaders(c){
+  const set = new Set(c && c.otHeaders || []);
+  if(!state.selectedSiteId || (c && selectedSite() && ensureSiteRules(selectedSite()).combined===c)) currentOtHeaders().forEach(h=>set.add(h));
+  return [...set];
+}
+function siteOtSumLabels(c){
+  const set = new Set(c && c.otSumLabels || []);
+  currentOtSumLabels().forEach(h=>set.add(h));
+  set.add('미사용휴무개수');
+  return [...set];
+}
+// 규칙이 가리키는 칸이 실제로 어느 칸으로 연결되는지 (칸 목록 기준)
+function otResolveHeader(rule, headers){
+  if(!rule || !rule.src || rule.src==='@night') return null;
+  const cols = {}; headers.forEach(h=>cols[h]=0);
+  return otColFor({cols}, rule);
+}
+// 이번 달 근태표에서 찾지 못한 규칙 (엑셀 근태표를 분석했을 때만 판단)
+function otMissingRules(map){
+  map = map || state.otMap || defaultOtMap();
+  const ex = state.sources.filter(s=>s.kind==='excel' && (s.otRaw||[]).length);
+  if(!ex.length) return [];
+  return OT_CATS.filter(cat=>{
+    const r = map[cat];
+    if(!r || !r.src || r.src==='@night' || ((r.src==='@custom'||r.src==='@sum') && !r.col)) return false;
+    return !ex.some(s=>s.otRaw.some(x=>otColFor(x, r)!=null));
+  }).map(cat=>({cat, col: (map[cat].src==='@custom'||map[cat].src==='@sum') ? map[cat].col : map[cat].src, night: map[cat].src==='야간근무'}));
+}
+function reapplyOtRules(){
+  const map = state.otMap || defaultOtMap(), wd = state.weekendDays || [0,6];
+  state.sources.forEach(s=>{ if(s.otRaw) s.otRecords = applyOtMap(s.otRaw, map, wd).map(r=>({...r, name: matchRosterName(r.name)})); });
+  rememberOtHeaders();
+}
+// 회사 공통 근태확인표(직원별로 출근시간·퇴근시간… 칸 묶음)에서 원자료를 읽는다
+function hitsRowHas(ws, r, range){
+  for(let C=range.s.c; C<=range.e.c; C++){ const x = ws[XLSX.utils.encode_cell({r,c:C})]; if(x && x.v!=null && String(x.v).trim()==='출근시간') return true; }
+  return false;
+}
+function tryParseOvertimeRaw(wb, nightThresholdMin, selectedPeriod){
+  const raw = []; let matchedAny = false;
   function dateParts(c){
     if(!c || c.t!=='n' || c.v==null) return null;
     const d = XLSX.SSF.parse_date_code(c.v);
     if(!d || !d.y || d.y<1990 || d.y>2100) return null;
     return {y:d.y, m:d.m, d:d.d};
   }
-  function minutesFromCell(c){
+  // unit: 'min' = 숫자가 분 (예: 480.00) / 'hour' = 숫자가 시간 (예: 8, 1.5) / 없으면 시각(h:mm)·하루 분수
+  function cellNum(c){
+    if(!c || c.v==null || c.v==='') return null;
+    const disp = c.w!=null ? String(c.w).trim() : (typeof c.v==='string' ? c.v.trim() : String(c.v));
+    if(disp==='' || disp==='-' || /:/.test(disp)) return null;
+    const v = c.t==='n' ? c.v : parseFloat(disp.replace(/,/g,''));
+    return isFinite(v) && /^-?[\d,]*\.?\d+\s*(분|시간|h)?$/i.test(disp.replace(/\s/g,'')) || c.t==='n' ? v : null;
+  }
+  function minutesFromCell(c, unit){
     if(!c || c.v==null || c.v==='') return null;
     const disp = c.w!=null ? String(c.w).trim() : (typeof c.v==='string' ? c.v.trim() : String(c.v));
     if(disp==='' || disp==='-') return null;
-    const m = disp.match(/^(\d{1,2}):(\d{2})/);
-    return m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : null;
+    const m = disp.match(/^(\d{1,3}):(\d{2})/);
+    if(m) return parseInt(m[1],10)*60 + parseInt(m[2],10);
+    const v = cellNum(c);
+    if(v==null || !(v>0)) return null;
+    if(unit==='min') return Math.round(v);
+    if(unit==='hour') return Math.round(v*60);
+    if(c.t==='n' && v<1) return Math.round(v*1440);     // 엑셀 시간값(하루의 분수)
+    return null;
   }
-
   for(const sheetName of wb.SheetNames){
     const ws = wb.Sheets[sheetName];
     const ref = ws['!ref']; if(!ref) continue;
@@ -3106,7 +3499,6 @@ function tryParseOvertimeSource(wb, nightThresholdMin, weekendDays, selectedPeri
         }
       }
       if(hits.length<1) continue;
-
       let nameRow=-1;
       for(let nr=R-1; nr>=Math.max(range.s.r,R-6); nr--){
         const vals = hits.map(c0=>{ const c=ws[XLSX.utils.encode_cell({r:nr,c:c0})]; return c?c.v:null; });
@@ -3116,59 +3508,98 @@ function tryParseOvertimeSource(wb, nightThresholdMin, weekendDays, selectedPeri
         if(plausible.length >= hits.length*0.5 && distinctOk){ nameRow=nr; break; }
       }
       if(nameRow<0) continue;
-
       let dateCol=-1, dateColHits=0;
       for(let C=Math.max(range.s.c, hits[0]-4); C<hits[0]; C++){
         let hitcount=0;
-        for(let dr=R+1; dr<=Math.min(range.e.r,R+35); dr++){
-          if(dateParts(ws[XLSX.utils.encode_cell({r:dr,c:C})])) hitcount++;
-        }
+        for(let dr=R+1; dr<=Math.min(range.e.r,R+35); dr++) if(dateParts(ws[XLSX.utils.encode_cell({r:dr,c:C})])) hitcount++;
         if(hitcount>dateColHits){ dateColHits=hitcount; dateCol=C; }
       }
       if(dateCol<0 || dateColHits<5) continue;
-
-      const employees = hits.map(c0=>{
+      const employees = hits.map((c0,hi)=>{
         const nameCell = ws[XLSX.utils.encode_cell({r:nameRow,c:c0})];
-        return isPlausibleName(nameCell&&nameCell.v) ? {name:String(nameCell.v).trim(), col0:c0} : null;
+        if(!isPlausibleName(nameCell&&nameCell.v)) return null;
+        const end = hi+1<hits.length ? hits[hi+1] : Math.min(range.e.c+1, c0+10);
+        const cols = [];
+        for(let C=c0+2; C<end; C++){
+          const h = ws[XLSX.utils.encode_cell({r:R,c:C})]; const t = h && h.v!=null ? otLabel(h.v) : '';
+          if(t) cols.push({c:C, label:t});
+        }
+        const nightCols = cols.filter(x=>/야간|심야/.test(x.label));
+        let nightEmpty = true;
+        nightCols.forEach(nc=>{ for(let dr=R+1; dr<=Math.min(range.e.r,R+40); dr++){ const c=ws[XLSX.utils.encode_cell({r:dr,c:nc.c})]; if(c && c.v!=null && String(c.v).trim()!=='' && String(c.v).trim()!=='-'){ nightEmpty=false; return; } } });
+        return {name:String(nameCell.v).trim(), col0:c0, cols, nightEmpty};
       }).filter(Boolean);
-      if(employees.length===0) continue;
-
+      if(!employees.length) continue;
+      // 숫자로 적힌 칸의 단위를 칸 이름별로 판단 (모든 직원 값을 함께 봄): 24 넘는 값이 있으면 분, 아니면 시간
+      const unitOf = {};
+      { const byLabel = {};
+        employees.forEach(emp=>emp.cols.forEach(cc=>{
+          const L = byLabel[cc.label] || (byLabel[cc.label] = {max:0, frac:false, hint:''});
+          const h = ws[XLSX.utils.encode_cell({r:R,c:cc.c})]; const ht = h&&h.v!=null ? String(h.v) : '';
+          if(/\(?분\)?$|\(분\)|min/i.test(ht)) L.hint='min'; else if(/시간\)|\(h\)|\(시\)/i.test(ht)) L.hint='hour';
+          for(let dr=R+1; dr<=Math.min(range.e.r,R+40); dr++){
+            const c = ws[XLSX.utils.encode_cell({r:dr,c:cc.c})];
+            if(!dateParts(ws[XLSX.utils.encode_cell({r:dr,c:dateCol})])) continue;   // 날짜 행만 (합계 행 제외)
+            const v = cellNum(c); if(v==null || !(v>0)) continue;
+            const isTimeFrac = c && c.t==='n' && v<1 && c.z && /h|m/i.test(String(c.z)) && !/0\.0/.test(String(c.z));
+            if(isTimeFrac) continue;
+            L.max = Math.max(L.max, v); L.frac = true;
+          }
+        }));
+        Object.entries(byLabel).forEach(([k,L])=>{ unitOf[k] = L.hint || (L.max>24 ? 'min' : L.frac ? 'hour' : ''); });
+      }
       let anchorRow=-1, anchorYMD=null;
       for(let dr=R+1; dr<=range.e.r; dr++){
         const parts = dateParts(ws[XLSX.utils.encode_cell({r:dr,c:dateCol})]);
         if(parts){ anchorRow=dr; anchorYMD=parts; break; }
       }
       if(anchorRow<0) continue;
-      if(selectedPeriod){
-        const pm = selectedPeriod.match(/^(\d{4})-(\d{2})$/);
-        if(pm) anchorYMD = {y:+pm[1], m:+pm[2], d:anchorYMD.d};
+      // 날짜 아래 합계 행 (예: "미사용휴무개수 3.00") — 행 이름과 직원 칸의 숫자를 모아 둔다
+      { let lastDate = anchorRow;
+        for(let dr=anchorRow; dr<=Math.min(range.e.r, anchorRow+40); dr++) if(dateParts(ws[XLSX.utils.encode_cell({r:dr,c:dateCol})])) lastDate = dr;
+        const txt = (r,c)=>{ const x=ws[XLSX.utils.encode_cell({r,c})]; if(!x || x.v==null || x.t==='n') return ''; return otLabel(x.v); };
+        const isLabel = t => !!t && t.length>=2 && !/^[\d.:,\-]+$/.test(t);
+        for(let dr=lastDate+1; dr<=Math.min(range.e.r, lastDate+20); dr++){
+          if(hitsRowHas(ws, dr, range)) break;   // 다음 표가 시작되면 멈춤
+          let rowLabel = '';
+          for(let C=range.s.c; C<hits[0]; C++){ const t = txt(dr,C); if(isLabel(t)){ rowLabel = t; break; } }
+          employees.forEach((emp, ei)=>{
+            const end = ei+1<employees.length ? employees[ei+1].col0 : Math.min(range.e.c+1, emp.col0+10);
+            let label = rowLabel, val = null;
+            for(let C=emp.col0; C<end; C++){
+              const t = txt(dr,C); if(isLabel(t)){ label = t; continue; }
+              const v = cellNum(ws[XLSX.utils.encode_cell({r:dr,c:C})]); if(v!=null) val = v;
+            }
+            if(label && val!=null){ emp.sums = emp.sums || {}; emp.sums[label] = val; }
+          });
+        }
       }
+      if(selectedPeriod){ const pm = selectedPeriod.match(/^(\d{4})-(\d{2})$/); if(pm) anchorYMD = {y:+pm[1], m:+pm[2], d:anchorYMD.d}; }
       const anchorMs = Date.UTC(anchorYMD.y, anchorYMD.m-1, anchorYMD.d);
-
       for(let i=0; i<dateColHits; i++){
         const dr = anchorRow+i;
         const dUtc = new Date(anchorMs + i*86400000);
         const dateStr = `${dUtc.getUTCFullYear()}-${String(dUtc.getUTCMonth()+1).padStart(2,'0')}-${String(dUtc.getUTCDate()).padStart(2,'0')}`;
-        const weekday = dUtc.getUTCDay(); // 0=Sun..6=Sat
-        const isWeekend = weekendDays.includes(weekday) || isKoreanHoliday(dateStr); // 법정 공휴일도 휴일연장/휴일심야로 분류
         employees.forEach(emp=>{
-          const endCell = ws[XLSX.utils.encode_cell({r:dr,c:emp.col0+1})]; // 퇴근시간
-          const extCell = ws[XLSX.utils.encode_cell({r:dr,c:emp.col0+3})]; // 연장근무
-
-          const extMin = minutesFromCell(extCell);
-          if(extMin!=null && extMin>0){
-            allRecords.push({name:emp.name, date:dateStr, category: isWeekend?'휴일연장':'평일연장', minutes:extMin});
-          }
-          const endMin = minutesFromCell(endCell);
-          if(endMin!=null && endMin > nightThresholdMin){
-            allRecords.push({name:emp.name, date:dateStr, category: isWeekend?'휴일심야':'평일심야', minutes: endMin-nightThresholdMin});
-          }
+          const rec = {name: emp.name, date: dateStr, cols:{}, endNight:0, nightEmpty: emp.nightEmpty};
+          if(i===0 && emp.sums) rec.sums = emp.sums;   // 합계 행 값은 그 달 1일 기록에 붙인다
+          emp.cols.forEach(cc=>{ const m = minutesFromCell(ws[XLSX.utils.encode_cell({r:dr,c:cc.c})], unitOf[cc.label]); if(m!=null && m>0) rec.cols[cc.label] = (rec.cols[cc.label]||0) + m; });
+          const endMin = minutesFromCell(ws[XLSX.utils.encode_cell({r:dr,c:emp.col0+1})]);
+          if(endMin!=null && endMin > nightThresholdMin) rec.endNight = endMin - nightThresholdMin;
+          // 머리글 이름은 있되 값이 없는 칸도 "있는 칸"으로 기록해 둔다 (규칙이 칸을 찾을 수 있게)
+          emp.cols.forEach(cc=>{ if(!(cc.label in rec.cols)) rec.cols[cc.label] = 0; });
+          raw.push(rec);
         });
       }
       matchedAny = true;
     }
   }
-  return matchedAny ? allRecords : null;
+  return matchedAny ? raw : null;
+}
+// 예전 함수 이름 유지: 원자료를 읽고 현재 규칙으로 나눈 결과를 돌려준다
+function tryParseOvertimeSource(wb, nightThresholdMin, weekendDays, selectedPeriod){
+  const raw = tryParseOvertimeRaw(wb, nightThresholdMin, selectedPeriod);
+  return raw ? applyOtMap(raw, state.otMap || defaultOtMap(), weekendDays) : null;
 }
 
 async function analyzeOvertimeSource(s){
@@ -3284,7 +3715,7 @@ function overtimeReviewTable(){
     <p class="desc">직원별 시간외 항목 합계입니다. 일자별 세부 값은 다운로드한 파일의 양식 자체와 "변경내역" 시트에서 확인할 수 있습니다.</p>
     <div class="gridwrap">
       <table class="att" style="font-size:12px;">
-        <thead><tr><th class="namecol">직원명</th>${OT_CATEGORIES.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+        <thead><tr><th class="namecol">직원명</th>${OT_CATEGORIES.map(c=>`<th>${c.label}<span class="otcode">${c.code}</span></th>`).join('')}</tr></thead>
         <tbody>
           ${names.length===0 ? `<tr><td class="namecol" colspan="6" style="text-align:center;color:var(--steel);">인식된 직원이 없습니다</td></tr>` : names.map(name=>{
             const values = g.grid[name]||{};
@@ -3990,12 +4421,16 @@ function knownForPeriod(wb){
   if(inP.length) return inP;
   return tryParseKnownSheet(wb, state.selectedPeriod) || [];
 }
-function otKnownForPeriod(wb){
-  const raw = tryParseOvertimeSource(wb, NIGHT_THRESHOLD_MIN, state.weekendDays);
+function otRawForPeriod(wb){
+  const raw = tryParseOvertimeRaw(wb, NIGHT_THRESHOLD_MIN);
   if(!raw) return null;
   const inP = raw.filter(r=>r.date.startsWith(state.selectedPeriod));
   if(inP.length || raw.length===0) return inP;
-  return tryParseOvertimeSource(wb, NIGHT_THRESHOLD_MIN, state.weekendDays, state.selectedPeriod) || [];
+  return tryParseOvertimeRaw(wb, NIGHT_THRESHOLD_MIN, state.selectedPeriod) || [];
+}
+function otKnownForPeriod(wb){
+  const raw = otRawForPeriod(wb);
+  return raw ? applyOtMap(raw, state.otMap || defaultOtMap(), state.weekendDays) : null;
 }
 function editDistanceLE1(a,b){
   if(a===b) return true;
@@ -4177,8 +4612,9 @@ function recomputeAfterSettings(){
   if(!state.analyzed) return;
   useRunSettings();
   state.sources.forEach(s=>{
-    if(s.kind!=='excel' && s._ocrRecords) s.otRecords = deriveOvertimeFromWorkedMinutes(applyManualNameOverride(s, s._ocrRecords));
+    if(s.kind!=='excel' && s._ocrRecords) s.otRaw = rawFromWorkedMinutes(applyManualNameOverride(s, s._ocrRecords));
   });
+  reapplyOtRules();
   if(state.generic.overtime.target) buildCombinedOvertimeGrid();
 }
 function analysisProblems(){
@@ -4428,7 +4864,7 @@ function wzStep2(){
             const s = entry.role==='src' ? state.sources.find(x=>x.id===entry.id) : null;
             const people = s ? [...new Set((s.records||[]).map(r=>r.name))] : [];
             const nameInput = !s ? '<span class="muted">–</span>'
-              : (s.kind!=='excel' && (s.detectedNames||[]).length<=1)
+              : (s.kind!=='excel' && (s.singlePerson || (s.detectedNames||[]).length===0))
                 ? `<input type="text" class="cellin wide" data-w="src-name" data-id="${s.id}" value="${escapeHtml(s.manualName||'')}" placeholder="비우면 AI가 읽은 이름" aria-label="직원명" />`
                 : (people.length ? `<span class="people" title="${escapeHtml(people.join(', '))}"><b>${people.length}명</b> ${escapeHtml(people.slice(0,4).join(', '))}${people.length>4?' …':''}</span>` : '<span class="muted">–</span>');
             const siteSel = s && state.sites.length>1 ? `<select data-w="src-site" data-id="${s.id}" style="margin-top:4px;" aria-label="현장">${state.sites.map(x=>`<option ${s.site===x?'selected':''}>${escapeHtml(x)}</option>`).join('')}</select>` : '';
@@ -4495,7 +4931,8 @@ function wzStep3(){
       <p class="desc">칸을 누르면 출근 → 휴무 → 확인필요 → 공란 순서로 바뀝니다. 이름 아래 "휴무 실제/설정"이 다르면 ⚠가 붙습니다.</p>
       ${state.sites.map(site=>siteGrid(site)).join('') || '<div class="notice">표시할 직원이 없습니다.</div>'}`;
   } else if(tab==='ot'){
-    body = overtimeReviewTable();
+    const miss = otMissingRules();
+    body = (miss.length ? `<div class="errbox"><h3>⚠ 시간외 항목 규칙의 칸을 이번 근태표에서 찾지 못했습니다</h3><ul>${miss.map(m=>`<li><b>${m.cat}</b> ← "${escapeHtml(m.col)}" 칸 없음 — ${m.night?'퇴근시간(22시 이후)으로 계산했습니다':'0으로 들어갑니다'}</li>`).join('')}</ul><button type="button" class="btn sm" data-rx="goto-otmap">규칙 관리 › 시간외항목에서 칸 고르기</button></div>` : '') + overtimeReviewTable();
   } else if(tab==='emps'){
     body = `<p class="desc">여기서 바꾸면 시간외수당(연장·야간) 계산과 양식의 월/일/휴무일수 칸에 바로 반영됩니다.</p>${secEmps()}`;
   } else {
@@ -4579,10 +5016,6 @@ function wzStep4(){
     <p class="desc" style="margin:0 0 6px;">${att||ot ? '같은 분석 결과로 지난달 청구내역서의 세부정산내역을 채울 수 있습니다.' : '올린 양식이 없어 여기서 받을 파일은 없습니다. 분석 결과로 청구내역서를 만들어보세요.'}</p>
     <button type="button" class="btn ${att||ot?'':'primary'}" data-w="goto-invoice">인보이스 내려받기로 →</button>
   </div>
-  <details class="promptdetails">
-    <summary>사용된 AI 판독 기준 보기</summary>
-    <div class="promptbox" style="margin-top:12px;">${escapeHtml(AI_SYSTEM_PROMPT)}</div>
-  </details>
   ${actionBar(`<button type="button" class="btn ghost" data-w="goto" data-n="3">← 확인·수정</button>`,
     `<button type="button" class="btn" data-w="restart">새 변환 시작</button>`, '같은 현장·월은 그대로 두고 파일만 비웁니다.')}
   `;
@@ -4824,6 +5257,13 @@ function invInspect(doc, shared){
       days: cellValue(cells[cols.days], shared), ot: cellValue(cells[cols.ot], shared), night: cellValue(cells[cols.night], shared), hol: cellValue(cells[cols.hol], shared)});
   }
   if(totalRow==null) throw new Error('세부정산내역 시트에서 "합계" 행을 찾지 못했습니다.');
+  // 성명·매장명 칸이 여러 행에 걸쳐 병합돼 있으면 (이전 결과 파일 등) 이름을 1명만 읽게 된다
+  const mergedCols = new Set();
+  Array.from(doc.getElementsByTagNameNS(SSML,'mergeCell')).forEach(mc=>{
+    const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(mc.getAttribute('ref')||''); if(!m) return;
+    if(+m[4] > +m[2] && +m[2] > headerRow && +m[2] < totalRow) for(let ci=colToNum(m[1]); ci<=colToNum(m[3]); ci++) mergedCols.add(numToCol(ci));
+  });
+  const mergedNames = mergedCols.has(cols.name);
   const first = headerRow+1, last = totalRow-1;
   // 정산일자·기준일수 칸 (머리글 바로 위 행)
   let periodCell=null, baseDaysCell=null;
@@ -4840,7 +5280,7 @@ function invInspect(doc, shared){
     }
   }
   const grades = [];
-  return {headerRow, first, last, totalRow, cols, employees: employees.filter(e=>e.name), allRows: employees, periodCell, baseDaysCell, grades};
+  return {headerRow, first, last, totalRow, cols, employees: employees.filter(e=>e.name), allRows: employees, periodCell, baseDaysCell, grades, mergedNames, mergedCols:[...mergedCols]};
 }
 
 /* ---- 직급참고시트의 구분 목록 (VLOOKUP 대상) ---- */
@@ -5013,6 +5453,29 @@ async function invBuild(ctx, plan, opts){
   });
   const rm = makeRowMap(first, last, n, oldToNew);
 
+  // 0) 직원 구역 안의 셀 병합은 따로 다룬다 (구조 이동으로 늘리면 No·성명·매장명이 한 칸으로 합쳐진다)
+  //    - 한 행 안 병합: 그 행(또는 그 행을 복제한 행)을 따라간다
+  //    - 여러 행에 걸친 병합: 풀고, 행마다 값·수식을 채운다
+  const rowMerges = [], vertMerges = [];
+  Array.from(doc.getElementsByTagNameNS(SSML,'mergeCell')).forEach(mc=>{
+    const m = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(mc.getAttribute('ref')||''); if(!m) return;
+    const r1 = +m[2], r2 = m[4] ? +m[4] : r1;
+    if(r2 < first || r1 > last) return;
+    const g = {c1:m[1], c2:m[3]||m[1], r1, r2};
+    if(r1===r2) rowMerges.push(g);
+    else {
+      g.anchor = {};
+      const ar = rowEls[Math.max(r1, first)];
+      for(let ci=colToNum(g.c1); ci<=colToNum(g.c2); ci++){
+        const col = numToCol(ci), c = ar && kids(ar,'c').find(x=>x.getAttribute('r')===col+Math.max(r1, first));
+        g.anchor[col] = {f: c && kid(c,'f') ? kid(c,'f').textContent : null, s: c ? c.getAttribute('s') : null, row: Math.max(r1, first),
+          val: c && !kid(c,'f') && (kid(c,'v') || kid(c,'is')) ? {t: c.getAttribute('t'), node: (kid(c,'v') || kid(c,'is')).cloneNode(true)} : null};
+      }
+      vertMerges.push(g);
+    }
+    mc.parentNode.removeChild(mc);
+  });
+
   // 1) 직원 구역 밖(위·아래) 수식: 구조 이동
   kids(sd,'row').forEach(r=>{
     const rn = +r.getAttribute('r');
@@ -5030,6 +5493,11 @@ async function invBuild(ctx, plan, opts){
   const anchor = below[0] || null;
   newRows.forEach(x=>{ setRowNumber(x.el, x.newNum); sd.insertBefore(x.el, anchor); });
 
+  // 3-1) 지난달 파일에 필터(예: 성명=최혜원)가 걸린 채 저장됐으면 나머지 행이 숨겨져 있다 → 직원 행과 합계 쪽 숨김을 풀고 필터 조건을 지운다
+  const hadFilter = Array.from(doc.getElementsByTagNameNS(SSML,'filterColumn')).length > 0;
+  Array.from(doc.getElementsByTagNameNS(SSML,'filterColumn')).forEach(fc=>fc.parentNode.removeChild(fc));
+  newRows.forEach(x=>{ x.el.removeAttribute('hidden'); });
+  if(hadFilter) kids(sd,'row').forEach(r=>{ if(+r.getAttribute('r') > first + n - 1) r.removeAttribute('hidden'); });
   // 4) 입력 칸 쓰기
   newRows.forEach(x=>{
     const {p, el, newNum} = x;
@@ -5052,6 +5520,23 @@ async function invBuild(ctx, plan, opts){
       });
     }
   });
+  // 4-1) 병합 다시 적용 / 풀린 칸 채우기
+  const mcParent = doc.getElementsByTagNameNS(SSML,'mergeCells')[0];
+  const freshMerges = new Set();   // 여기서 다시 붙인 병합은 아래 6)의 구조 이동에서 건드리지 않는다
+  const addMerge = ref => { if(!mcParent) return; const mc = doc.createElementNS(SSML,'mergeCell'); mc.setAttribute('ref', ref); mcParent.appendChild(mc); freshMerges.add(mc); };
+  newRows.forEach(x=>{
+    rowMerges.forEach(g=>{ if(g.r1===x.src) addMerge(`${g.c1}${x.newNum}:${g.c2}${x.newNum}`); });
+    vertMerges.forEach(g=>{
+      for(const col in g.anchor){
+        const a = g.anchor[col], c = ensureCell(doc, x.el, col, x.newNum);
+        const empty = !kid(c,'f') && !kid(c,'v') && !kid(c,'is');
+        if(empty && a.f){ const f = doc.createElementNS(SSML,'f'); f.textContent = translateFormula(a.f, x.newNum - a.row); c.insertBefore(f, c.firstChild); c.removeAttribute('t'); }
+        else if(empty && a.val){ c.appendChild(a.val.node.cloneNode(true)); if(a.val.t) c.setAttribute('t', a.val.t); }   // 병합돼 있던 같은 값을 행마다
+        if(!c.getAttribute('s') && a.s) c.setAttribute('s', a.s);
+      }
+    });
+  });
+  if(mcParent && !kids(mcParent,'mergeCell').length) mcParent.parentNode.removeChild(mcParent);
   // 5) 정산일자·기준일수
   if(opts && opts.period){
     const [y,m] = opts.period.split('-').map(Number);
@@ -5069,7 +5554,8 @@ async function invBuild(ctx, plan, opts){
   if(dim) dim.setAttribute('ref', mapRangeText(dim.getAttribute('ref')));
   Array.from(doc.getElementsByTagNameNS(SSML,'autoFilter')).forEach(a=>a.setAttribute('ref', mapRangeText(a.getAttribute('ref'))));
   ['sortState','sortCondition'].forEach(tag=>Array.from(doc.getElementsByTagNameNS(SSML,tag)).forEach(a=>a.setAttribute('ref', mapRangeText(a.getAttribute('ref')))));
-  Array.from(doc.getElementsByTagNameNS(SSML,'mergeCell')).forEach(mc=>mc.setAttribute('ref', mapRangeText(mc.getAttribute('ref'))));
+  Array.from(doc.getElementsByTagNameNS(SSML,'mergeCell')).forEach(mc=>{ if(!freshMerges.has(mc)) mc.setAttribute('ref', mapRangeText(mc.getAttribute('ref'))); });
+  Array.from(doc.getElementsByTagNameNS(SSML,'mergeCells')).forEach(mp=>mp.setAttribute('count', String(kids(mp,'mergeCell').length)));
   Array.from(doc.getElementsByTagNameNS(SSML,'conditionalFormatting')).forEach(cf=>{
     const parts = cf.getAttribute('sqref').split(/\s+/).map(rg=>{
       const m = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(rg); if(!m) return rg;
@@ -5234,14 +5720,22 @@ function invAnalysisSummary(){
     const x = get(r.name), e = runEmp(r.name);
     if(/연장/.test(r.category) && e.ot) x.ot += r.minutes;
     if(/심야/.test(r.category) && e.night) x.night += r.minutes;
+    if(r.category==='휴일근무'){ x.holOt = (x.holOt||0) + r.minutes; if(r.dayCount!=null) x.holDayN = (x.holDayN||0) + r.dayCount; else x.holDates = (x.holDates||[]).concat(r.date); }
   }));
-  const weekend = ensureRun().weekendDays || [];
+  // 엑셀 근태표를 읽었으면 휴일근무는 "시간외 항목 규칙" 값만 쓴다 (없으면 0). 사진·PDF만 있을 때만 공휴일 출근일로 추정
+  const hasHolData = state.sources.some(s=>s.kind==='excel' && (s.otRaw||[]).length) || otRuleHasData('휴일근무') || state.sources.some(s=>(s.otRecords||[]).some(r=>r.category==='휴일근무'));
   map.forEach(x=>{
     const work = Object.entries(x.status).filter(([,st])=>st==='O').map(([d])=>d);
     x.workDays = work.length;
-    x.holDays = work.filter(d=>weekend.includes(new Date(d+'T00:00:00Z').getUTCDay()) || isKoreanHoliday(d)).length;
-    const dayStd = parseFloat(runEmp(x.name).day);
-    x.hol = x.holDays * Math.round((isNaN(dayStd) ? 8 : dayStd) * 60);
+    if(hasHolData){
+      // 근태확인표의 휴일근무 칸 값 그대로
+      x.hol = Math.round(x.holOt||0); x.holDays = new Set(x.holDates||[]).size + (x.holDayN||0);
+    } else {
+      // 휴일근무 칸이 없으면 법정 공휴일에 출근한 날 × 일 소정근로시간 (토·일 정기 근무는 휴일근무로 보지 않는다)
+      const dayStd = parseFloat(runEmp(x.name).day);
+      x.holDays = work.filter(d=>isKoreanHoliday(d)).length;
+      x.hol = x.holDays * Math.round((isNaN(dayStd) ? 8 : dayStd) * 60);
+    }
   });
   return map;
 }
@@ -5277,8 +5771,16 @@ function invBuildRowsFromAnalysis(){
   const commonStore = Object.entries(storeCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
   const fill = (base, x) => {
     const name = base.name;
-    const hire = normDateStr(findRosterValue((state.roster[normName(name)]||{fields:{}}).fields, '입사일')) || base.hire || '';
-    const term = normDateStr(findRosterValue((state.roster[normName(name)]||{fields:{}}).fields, '퇴사일')) || base.term || '';
+    const rf = (state.roster[normName(name)]||{fields:{}}).fields;
+    // 입사일: 기존 인보이스 행은 그 값을 그대로, 새 직원만 직원명단 값을 쓴다
+    const hire = base.hire || normDateStr(findRosterValue(rf, '입사일')) || '';
+    const periodStart = `${p}-01`;
+    const staleTerm = t => !t
+      || (hire && t < hire)                                   // 입사일보다 앞선 퇴사일 = 지난 계약
+      || (t < periodStart && x && x.workDays > 0);            // 이번 달 근무 기록이 있는데 이번 달 이전 퇴사일
+    let term = normDateStr(findRosterValue(rf, '퇴사일'));
+    if(staleTerm(term)) term = '';
+    if(!term && base.term && !staleTerm(base.term)) term = base.term;
     const grade = base.grade || rosterGrade(name, inv.grades);
     const isPT = PT_GRADE_RE.test(grade);
     return {
@@ -5343,6 +5845,12 @@ function invBuildRowsFromAnalysis(){
     });
   }
   inv.basis = useRoster ? {roster: rosterList.length, site: (selectedSite()||{}).name || ''} : null;
+  const dropCount = rows.filter(r=>r.kind==='notInRoster').length;
+  if(useRoster && info.employees.length>=3 && dropCount > info.employees.length/2){
+    // 명단을 잘못 읽었을 가능성이 크다 → 지우지 않고 포함해 둔 채 알린다
+    rows.forEach(r=>{ if(r.kind==='notInRoster'){ r.kind = 'rosterMismatch'; r.include = true; } });
+    inv.basis.suspicious = dropCount;
+  }
   inv.rows = rows;
   inv.filledAt = Date.now();
 }
@@ -5378,8 +5886,9 @@ function invValidate(){
 async function invDownload(meta){
   const inv = state.invoice;
   const problems = invValidate();
-  if(problems.length){ toast(problems.slice(0,3).join(' · '), {error:true}); return; }
-  inv.busy = true; render();
+  if(problems.length){ inv.modalError = '받기 전에 고칠 곳이 있습니다: ' + problems.slice(0,3).join(' · '); render(); return; }
+  if(!inv.buf){ inv.modalError = '인보이스 파일 내용을 찾지 못했습니다. 파일을 다시 올려주세요.'; render(); return; }
+  inv.busy = true; inv.modalError = null; inv.ready = null; render();
   try{
     const ctx = await invLoad(inv.buf); // 매번 원본에서 새로 만든다
     const plan = inv.rows.filter(r=>r.include).map(r=>({
@@ -5394,13 +5903,24 @@ async function invDownload(meta){
     const [py, pm] = state.selectedPeriod.split('-');
     // 파일 이름 끝의 "26.07" 같은 연월은 대상 월로 바꾼다
     const name = /\d{2}[.\-_]\d{2}\s*$/.test(base) ? base.replace(/(\d{2})([.\-_])(\d{2})\s*$/, `${py.slice(2)}$2${pm}`) : `${base}_${py.slice(2)}.${pm}`;
-    await saveFile(`${name}.xlsx`, blob);
-    inv.modal = false;
+    inv.ready = {blob, name: `${name}.xlsx`, size: blob.size, changes: (ctx.invoiceChanges||[]).length, count: plan.length};
+    inv.busy = false; render();
+    invSaveReady(true); // 자동 저장을 한 번 시도하고, 막히면 창의 "파일 받기" 버튼으로 받는다
+    return;
   }catch(err){
     console.error(err);
-    toast('인보이스를 만들지 못했습니다: '+(err.message||err), {error:true});
+    inv.modalError = '인보이스를 만들지 못했습니다: ' + (err && err.message || err);
   }
   inv.busy = false; render();
+}
+async function invSaveReady(auto){
+  const inv = state.invoice, r = inv.ready; if(!r) return;
+  inv.saving = true; render();
+  const res = await saveFile(r.name, r.blob, {quiet:true});
+  inv.saving = false;
+  if(res.ok){ inv.modalError = null; r.saved = true; }
+  else inv.modalError = res.reason;
+  render();
 }
 
 function invMetaDefaults(){
@@ -5436,9 +5956,12 @@ function invModalHtml(){
         <div class="au-row2">${f('bossPhone','연락처','010-0000-0000','tel')}${f('bossEmail','이메일','name@zeniel.co.kr','email')}</div>
       </fieldset>
       <p class="au-note" style="text-align:left;">빈칸으로 두면 원래 파일 내용을 그대로 둡니다. 입력한 내용은 다음에도 미리 채워집니다.</p>
+      ${inv.modalError ? `<div class="au-msg err" role="alert">${escapeHtml(inv.modalError)}</div>` : ''}
+      ${inv.ready ? `<div class="au-msg ok" role="status"><b>${inv.ready.saved ? '저장을 시작했습니다.' : '파일을 만들었습니다.'}</b> ${escapeHtml(inv.ready.name)} · 직원 ${inv.ready.count}명 · ${(inv.ready.size/1024).toFixed(0)}KB<br/>${inv.ready.saved ? '브라우저의 다운로드 목록을 확인해주세요. 보이지 않으면 아래 <b>파일 받기</b>를 다시 눌러주세요.' : '아래 <b>파일 받기</b>를 눌러 저장해주세요.'}</div>` : ''}
       <div class="au-row-btn">
-        <button type="button" class="btn ghost" data-inv="meta-cancel">취소</button>
-        <button type="submit" class="btn primary" ${inv.busy?'disabled':''}>${inv.busy?'<span class="spin light"></span> 만드는 중':'이 내용으로 받기'}</button>
+        <button type="button" class="btn ghost" data-inv="meta-cancel">${inv.ready ? '닫기' : '취소'}</button>
+        ${inv.ready ? `<button type="button" class="btn primary" data-inv="save-ready" ${inv.saving?'disabled':''}>${inv.saving?'<span class="spin light"></span> 저장 중':'파일 받기'}</button>` : ''}
+        <button type="submit" class="btn ${inv.ready?'':'primary'}" ${inv.busy?'disabled':''}>${inv.busy?'<span class="spin light"></span> 만드는 중':(inv.ready?'다시 만들기':'이 내용으로 받기')}</button>
       </div>
     </form>
   </div>`;
@@ -5491,6 +6014,8 @@ function viewInvoice(){
           <input type="file" id="invFile" data-inv="file" accept=".xlsx" ${inv.busy?'disabled':''} />
         </div>
         ${inv.error ? `<div class="errbox" style="margin-top:10px;"><h3>⚠ 파일을 읽지 못했습니다</h3><ul><li>${escapeHtml(inv.error)}</li></ul></div>` : ''}`}
+      ${inv.info && inv.info.mergedNames ? `<div class="notice" style="margin-top:10px;border-color:#EAD3A6;background:var(--warn-dim);">올린 파일의 <b>성명 칸이 여러 행으로 셀 병합</b>되어 있어 기존 직원 이름을 ${inv.info.employees.length}명만 읽었습니다. 이전에 받은 결과 파일이면 병합 전 원본(실제 청구했던 파일)을 올려주세요. 이 파일로 받아도 병합은 자동으로 풀리고, 직원은 직원명단·근태 기준으로 채워집니다.</div>`
+        : inv.info && inv.info.mergedCols && inv.info.mergedCols.length ? `<p class="desc" style="margin:10px 0 0;">직원 행에 셀 병합(${inv.info.mergedCols.join('·')}열)이 있어, 받는 파일에서는 병합을 풀고 행마다 따로 채웁니다.</p>` : ''}
     </div>
 
     ${inv.info && !inv.error ? `
@@ -5498,13 +6023,14 @@ function viewInvoice(){
       <div class="run-head" style="margin-bottom:10px;">
         <div>
           <h2>② 반영할 내용 확인</h2>
-          ${inv.basis ? `<p class="desc" style="margin:0 0 4px;"><b>${escapeHtml(inv.basis.site)} 직원명단 ${inv.basis.roster}명 기준</b>입니다. 기존 인보이스에만 있고 명단에 없는 사람은 행을 삭제합니다.</p>`
+          ${inv.basis && inv.basis.suspicious ? `<div class="notice" style="margin:0 0 8px;border-color:#EAD3A6;background:var(--warn-dim);"><b>${escapeHtml(inv.basis.site)} 직원명단(${inv.basis.roster}명)</b>과 인보이스 이름이 많이 다릅니다. 명단 기준으로 ${inv.basis.suspicious}명을 지우게 되어, 지우지 않고 그대로 두었습니다. 현장등록에서 직원명단을 확인해주세요. 정말 퇴사자면 그 행의 체크를 해제하세요.</div>`
+            : inv.basis ? `<p class="desc" style="margin:0 0 4px;"><b>${escapeHtml(inv.basis.site)} 직원명단 ${inv.basis.roster}명 기준</b>입니다. 기존 인보이스에만 있고 명단에 없는 사람은 행을 삭제합니다.</p>`
             : `<div class="notice" style="margin:0 0 8px;border-color:#EAD3A6;background:var(--warn-dim);">현장이 선택되지 않아 직원명단 없이 <b>기존 인보이스 명단</b>을 기준으로 채웠습니다. 퇴사자를 빼려면 1단계에서 현장을 고르고 "분석 결과로 다시 채우기"를 누르세요.</div>`}
-          <p class="desc" style="margin:0;">값을 바로 고칠 수 있습니다. 연장·야간·휴일근무는 <b>분</b> 단위입니다(파일과 같음). 휴일근무는 휴일(규칙 관리의 휴일 요일·법정 공휴일)에 출근한 날 × 일 소정근로시간입니다.</p>
+          <p class="desc" style="margin:0;">값을 바로 고칠 수 있습니다. 연장·야간·휴일근무는 <b>분</b> 단위입니다(파일과 같음). 연장·야간·휴일근무는 규칙 관리의 <b>시간외 항목 규칙</b>대로 나눈 시간외수당 값과 같습니다(연장 = 평일연장+휴일연장, 야간 = 평일심야+휴일심야). 휴일근무 규칙이 근태표 칸과 이어지지 않으면 법정 공휴일 출근일 × 일 소정근로시간으로 계산합니다.</p>
         </div>
         <div class="mini-kpis" style="margin:0;"><span><b>${cnt('keep')}</b>유지</span><span><b>${cnt('new')+cnt('rosterOnly')}</b>신규</span><span><b>${cnt('nodata')}</b>근태 없음</span><span><b>${dropped}</b>행 삭제</span><span><b>${inv.info.employees.length}→${inc.length}</b>명</span></div>
       </div>
-      <div class="tablewrap emp-wrap" style="max-height:max(300px, calc(100vh - 420px));">
+      <div class="tablewrap emp-wrap" data-scroll-key="inv-table" style="max-height:max(300px, calc(100vh - 420px));">
         <table class="list emp-table inv-table">
           <thead><tr>
             <th>반영</th><th>상태</th><th>성명</th><th title="근태 분석에서 이 직원으로 연결된 이름">근태표 이름</th><th>구분</th><th>매장명</th><th>입사일</th><th>퇴사일</th>
@@ -5517,6 +6043,7 @@ function viewInvoice(){
               const pill = !r.include ? (r.kind==='notInRoster' ? '<span class="pill" style="background:var(--danger-dim);color:var(--danger);" title="기존 인보이스에는 있지만 이번 달 직원명단에 없습니다 (퇴사자 등). 이 행은 삭제됩니다. 넣어야 하면 체크하세요.">명단에 없음 · 행 삭제</span>'
                   : r.srcRow!=null ? '<span class="pill" style="background:var(--danger-dim);color:var(--danger);">행 삭제</span>'
                   : (r.kind==='unknown' ? '<span class="pill" title="근태표에서 읽혔지만 직원명단에 없는 이름입니다. 맞는 사람이면 체크하세요.">명단에 없음 · 제외</span>' : '<span class="pill">제외</span>'))
+                : r.kind==='rosterMismatch' ? '<span class="pill warn" title="직원명단에서 찾지 못했지만, 명단을 잘못 읽었을 수 있어 그대로 두었습니다">명단 확인 필요</span>'
                 : r.kind==='new' ? '<span class="pill brand">신규</span>' : r.kind==='rosterOnly' ? '<span class="pill brand" title="직원명단에는 있지만 기존 인보이스와 근태 분석에 없는 사람입니다">신규 · 근태 없음</span>' : r.kind==='unknown' ? '<span class="pill warn" title="근태표에서 읽혔지만 사원명부·인보이스에 없는 이름입니다">명부에 없음</span>' : r.kind==='nodata' ? '<span class="pill warn" title="이번 근태 분석에서 이 이름을 찾지 못했습니다. 근태표에 다른 이름으로 읽혔으면 \'근태표 이름\' 칸에서 연결하세요.">근태 없음</span>' : '<span class="pill good">유지</span>';
               return `<tr class="${r.include?'':'off-row'}">
                 <td><input type="checkbox" data-inv="inc" data-i="${i}" ${r.include?'checked':''} aria-label="${escapeHtml(r.name)} 반영"/></td>
@@ -5575,10 +6102,11 @@ function invClick(e){
   if(a==='download'){
     const problems = invValidate();
     if(problems.length){ toast(problems.slice(0,3).join(' · '), {error:true}); return; }
-    state.invoice.metaDraft = null; state.invoice.modal = true; render();
+    state.invoice.metaDraft = null; state.invoice.modal = true; state.invoice.ready = null; state.invoice.modalError = null; render();
     setTimeout(()=>{ const i = document.querySelector('form[data-inv-form="meta"] input'); if(i) i.focus(); }, 0); return;
   }
-  if(a==='meta-cancel'){ state.invoice.modal = false; render(); return; }
+  if(a==='meta-cancel'){ state.invoice.modal = false; state.invoice.ready = null; state.invoice.modalError = null; render(); return; }
+  if(a==='save-ready'){ invSaveReady(false); return; }
 }
 function invChange(e){
   const el = e.target.closest('[data-inv]');
@@ -5597,8 +6125,23 @@ function invChange(e){
     const k = el.dataset.k;
     r[k] = ['days','ot','night','hol'].includes(k) ? (el.value===''?'':+el.value) : el.value;
     if(k==='hire' || k==='term' || k==='grade') r.days = PT_GRADE_RE.test(r.grade) && r.workDays!=null ? r.workDays : employmentDays(r.hire, r.term, state.selectedPeriod);
-    render(); return;
+    invPatchRow(+el.dataset.i); // 표를 다시 그리지 않고 바뀐 칸만 고친다 → 스크롤·커서 그대로
+    return;
   }
+}
+// 값 하나를 고쳤을 때: 그 행의 계산 칸과 아래쪽 안내만 바꾼다
+function invPatchRow(i){
+  const inv = state.invoice, r = inv.rows[i]; if(!r) return;
+  const q = k => document.querySelector(`#app [data-inv="f"][data-k="${k}"][data-i="${i}"]`);
+  const days = q('days'); if(days && document.activeElement!==days) days.value = r.days==null ? '' : r.days;
+  const grade = q('grade'); if(grade) grade.classList.toggle('bad', !!(r.include && inv.grades.length && !inv.grades.includes(r.grade)));
+  const fmtMin = m => { m = +m||0; return m ? `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}` : ''; };
+  ['ot','night','hol'].forEach(k=>{ const el = q(k); const note = el && el.nextElementSibling; if(note && note.classList.contains('sub-note')) note.textContent = fmtMin(r[k]); });
+  const problems = invValidate(), inc = inv.rows.filter(x=>x.include).length;
+  const hint = document.querySelector('#app .inv-page .action-hint');
+  if(hint) hint.textContent = problems.length ? `⚠ ${problems[0]}${problems.length>1?` 외 ${problems.length-1}건`:''}` : '세부정산내역 입력 칸과 인보이스 시트의 건명·기간·담당자만 바뀝니다.';
+  const btn = document.querySelector('#app .inv-page .action-bar [data-inv="download"]');
+  if(btn && !inv.busy) btn.textContent = `인보이스 받기 (${inc}명)`;
 }
 function invDrag(e){
   const zone = e.target.closest('[data-inv-drop]'); if(!zone) return;
@@ -5830,7 +6373,13 @@ function adminHtml(){
       </div>
       <section class="panel">
         <div class="run-head" style="margin-bottom:8px;"><div><h2>가입 허용 명단 <span class="pill brand">${d.allow.length}명</span> <span class="pill good">가입 ${d.allow.filter(a=>users.has(a.email)).length}명</span></h2>
-          <p class="desc" style="margin:0;">여기 있는 이름·사내메일과 똑같이 입력해야 가입할 수 있습니다. 명단에서 지우면 그 사람은 바로 로그인할 수 없게 됩니다.</p></div></div>
+          <p class="desc" style="margin:0;">여기 있는 이름·사내메일과 똑같이 입력해야 가입할 수 있습니다. 명단에서 지우면 그 사람은 바로 로그인할 수 없게 됩니다.</p></div>
+          <div class="au-row-btn">
+            <button type="button" class="btn sm" data-au="allow-export" ${d.allow.length?'':'disabled'}>엑셀로 내려받기</button>
+            <button type="button" class="btn sm primary" data-au="allow-import-pick">엑셀 올리기</button>
+            <input type="file" id="auAllowFile" accept=".xlsx,.xls,.csv" hidden />
+          </div></div>
+        <label class="chk au-sync"><input type="checkbox" id="auAllowSync" /> 엑셀을 올릴 때, 엑셀에 없는 사람은 명단에서 지우기 (엑셀을 전체 명단으로 쓰기)</label>
         <form class="au-inline" data-au-form="admin-add" novalidate>
           <input name="name" placeholder="이름" aria-label="이름" required />
           <input name="email" type="email" placeholder="사내메일" aria-label="사내메일" required style="min-width:220px;" />
@@ -5957,6 +6506,18 @@ function authClick(e){
   if(a==='to-admin'){ AUTH.view='admin'; AUTH.adminData=null; render(); adminLoad(); return; }
   if(a==='logout'){ authLogout(); return; }
   if(a==='reload'){ location.reload(); return; }
+  if(a==='allow-export'){
+    const d = AUTH.adminData; if(!d) return;
+    const users = new Map(d.users.map(u=>[u.email,u]));
+    const aoa = [['이름','사내메일','소속','가입','등록일'], ...d.allow.map(x=>[x.name, x.email, x.team||'', users.has(x.email)?'가입':'미가입', (x.addedAt||'').slice(0,10)])];
+    const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{wch:10},{wch:28},{wch:14},{wch:8},{wch:12}];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '가입허용명단');
+    const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const t = new Date(); const ds = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    saveFile(`가입허용명단_${ds}.xlsx`, new Blob([out])).then(r=>{ if(r && r.ok) { authSetMsg('ok', `가입 허용 명단 ${d.allow.length}명을 엑셀로 내려받았습니다.`); render(); } });
+    return;
+  }
+  if(a==='allow-import-pick'){ const f = document.getElementById('auAllowFile'); if(f){ f.value=''; f.click(); } return; }
   if(a==='admin-remove'){
     const email = el.dataset.email;
     if(el.dataset.confirm!=='1'){ el.dataset.confirm='1'; el.textContent='한 번 더 누르면 삭제'; setTimeout(()=>{ if(el.isConnected){ el.dataset.confirm=''; el.textContent='명단에서 삭제'; } }, 3000); return; }
@@ -5968,10 +6529,57 @@ function authClick(e){
     return authRun(async()=>{ await api('adminRemoveUser', {email}, true); AUTH.adminData = await api('adminGet', {}, true); authSetMsg('ok', `${email} 계정을 지웠습니다. 다시 가입하면 새 비밀번호로 쓸 수 있습니다.`); });
   }
 }
+// 엑셀 명단 읽기: 머리글에서 이름/성명, 사내메일/이메일, 소속/팀 칸을 찾는다
+function parseAllowWorkbook(wb){
+  for(const sn of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:false, defval:''});
+    for(let h=0; h<Math.min(rows.length, 10); h++){
+      const hdr = rows[h].map(v=>String(v).replace(/\s+/g,''));
+      const ni = hdr.findIndex(v=>/^(이름|성명|직원명|사원명)$/.test(v));
+      const ei = hdr.findIndex(v=>/(사내)?(그룹)?(메일|이메일|e-?mail)(주소)?$/i.test(v));
+      if(ni<0 || ei<0) continue;
+      const ti = hdr.findIndex(v=>/^(소속|팀|부서|소속팀)$/.test(v));
+      const out = [], bad = [];
+      rows.slice(h+1).forEach((r,i)=>{
+        const name = String(r[ni]||'').trim(), email = String(r[ei]||'').trim();
+        if(!name && !email) return;
+        let team = ti>=0 ? String(r[ti]||'').replace(/\s+/g,'') : '';
+        team = /1팀/.test(team) ? '인재사업 1팀' : /2팀/.test(team) ? '인재사업 2팀' : '';
+        if(!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad.push(`${h+i+2}행 ${name||'(이름 없음)'} ${email}`);
+        else out.push({name, email, team});
+      });
+      return {entries: out, bad, sheet: sn};
+    }
+  }
+  return null;
+}
+async function importAllowFile(file){
+  const sync = !!(document.getElementById('auAllowSync')||{}).checked;
+  await authRun(async()=>{
+    const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+    const parsed = parseAllowWorkbook(wb);
+    if(!parsed) throw new Error('엑셀에서 "이름"과 "사내메일" 머리글을 찾지 못했습니다. 첫 줄에 이름 · 사내메일 · 소속 머리글을 넣어주세요.');
+    if(!parsed.entries.length) throw new Error('엑셀에 넣을 사람이 없습니다.' + (parsed.bad.length ? ` 형식이 맞지 않는 줄: ${parsed.bad.slice(0,3).join(' / ')}` : ''));
+    let added = 0;
+    for(let i=0; i<parsed.entries.length; i+=500){
+      const j = await api('adminAddAllow', {entries: parsed.entries.slice(i, i+500)}, true);
+      added += j.added;
+    }
+    let removed = 0;
+    if(sync){
+      const keep = new Set(parsed.entries.map(e=>e.email.toLowerCase()));
+      const cur = (await api('adminGet', {}, true)).allow;
+      for(const x of cur){ if(!keep.has(x.email)){ await api('adminRemoveAllow', {email:x.email, alsoUser:false}, true); removed++; } }
+    }
+    AUTH.adminData = await api('adminGet', {}, true);
+    authSetMsg(parsed.bad.length ? 'warn' : 'ok', `엑셀에서 ${added}명을 명단에 넣었습니다(이미 있던 사람은 이름·소속만 고침).${removed?` 엑셀에 없는 ${removed}명은 명단에서 지웠습니다.`:''}${parsed.bad.length?` 넣지 못한 줄 ${parsed.bad.length}개: ${parsed.bad.slice(0,4).join(' / ')}`:''}`);
+  });
+}
 function authKey(e){ if(e.key==='Escape' && AUTH.adminModal){ AUTH.adminModal=false; authSetMsg(null); render(); } }
 (function(){
   const app = document.getElementById('app');
   app.addEventListener('submit', authSubmit);
+  app.addEventListener('change', e=>{ if(e.target && e.target.id==='auAllowFile' && e.target.files[0]) importAllowFile(e.target.files[0]); });
   app.addEventListener('click', authClick);
   document.addEventListener('keydown', authKey);
 })();
