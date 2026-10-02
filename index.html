@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="description" content="ZENIEL HR-Biz 사업부 인재사업 2팀 · 월근태일괄등록, 시간외수당, 인보이스 자동화" />
+<meta name="description" content="ZENIEL HR-Biz 사업부 인재사업팀 · 월근태일괄등록, 시간외수당, 인보이스 자동화" />
+<meta name="robots" content="noindex, nofollow" />
 <title>HR Operations Platform · ZENIEL</title>
 <style>html,body{margin:0;padding:0;}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -286,6 +287,89 @@
   .cellin[readonly]{background:var(--off);}
   .sub-note{display:block;font-size:10px;color:var(--steel);margin-top:2px;font-family:'IBM Plex Mono',monospace;}
   .people{font-size:11.5px;color:var(--ink);} .people b{color:var(--brand-ink);}
+  /* ---- 로그인 · 가입 · 관리자 ---- */
+  .au-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 16px;box-sizing:border-box;position:relative;
+    background:radial-gradient(1200px 520px at 50% -10%, #DDF1FD 0%, rgba(221,241,253,0) 70%), linear-gradient(180deg,#F5FAFE 0%, #EEF5FA 100%);}
+  .au-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:18px;}
+  .au-brand{text-align:center;}
+  .au-logo{height:46px;width:auto;display:block;margin:0 auto 10px;}
+  .au-brand h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#0C3B5A;margin:0;letter-spacing:.005em;}
+  .au-brand h1 .hr{background:linear-gradient(180deg,#38BDF8,#0284C7);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .au-brand p{margin:6px 0 0;font-size:13px;color:var(--steel);}
+  .au-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 26px 20px;box-shadow:0 1px 0 #fff inset, 0 14px 40px rgba(12,74,110,.10);display:flex;flex-direction:column;gap:13px;}
+  .au-card h2{margin:0;font-size:17px;font-weight:700;color:var(--ink);}
+  .au-center{flex-direction:row;align-items:center;justify-content:center;gap:10px;color:var(--steel);font-size:13px;}
+  .au-fld{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--steel);min-width:0;}
+  .au-fld input,.au-fld select,.au-inline input,.au-inline select,.au-bulk textarea{border:1px solid var(--line-strong);border-radius:9px;padding:10px 12px;font-size:14px;color:var(--ink);background:#fff;font-family:inherit;min-width:0;}
+  .au-fld input:focus,.au-fld select:focus,.au-inline input:focus,.au-bulk textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(2,132,199,.15);}
+  .au-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .au-submit{width:100%;justify-content:center;padding:12px 16px;font-size:14px;margin-top:2px;border-radius:10px;}
+  .au-foot{text-align:center;font-size:13px;color:var(--steel);}
+  .au-link{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
+  .au-link:hover{color:var(--brand);}
+  .au-note{margin:0;font-size:11.5px;color:var(--steel);text-align:center;}
+  .au-desc{margin:0;font-size:13px;color:var(--steel);line-height:1.6;}
+  .au-msg{font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:9px;border:1px solid;}
+  .au-msg.err{color:#8F2424;background:var(--danger-dim);border-color:#EBC2C2;}
+  .au-msg.ok{color:#0B5E3C;background:var(--good-dim);border-color:#BCE3CF;}
+  .au-msg.warn{color:#7A4A10;background:var(--warn-dim);border-color:#EAD3A6;}
+  .au-steps{display:flex;gap:6px;list-style:none;margin:0;padding:0;}
+  .au-steps li{flex:1;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--steel);padding:7px 8px;border-radius:8px;background:var(--off);}
+  .au-steps li b{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;background:#fff;color:var(--steel);border:1px solid var(--line-strong);flex:none;}
+  .au-steps li.on{background:var(--brand-dim);color:var(--brand-ink);} .au-steps li.on b{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .au-steps li.done b{background:var(--good);color:#fff;border-color:var(--good);}
+  .au-code{font-family:'IBM Plex Mono',monospace;font-size:24px!important;letter-spacing:.5em;text-align:center;padding:10px 12px!important;}
+  .au-code.sm{font-size:16px!important;letter-spacing:.3em;width:120px;}
+  .au-admin-btn{position:absolute;top:18px;right:20px;
+    display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#24435A;padding:8px 15px 9px;border-radius:11px;cursor:pointer;
+    background:linear-gradient(180deg,#FFFFFF 0%,#EDF6FC 100%);border:1px solid #CFE0EC;
+    box-shadow:inset 0 1px 0 #fff, 0 3px 0 #C3D8E7, 0 5px 10px rgba(2,132,199,.10);
+    transition:transform .16s cubic-bezier(.3,.7,.4,1.4), box-shadow .16s ease, color .16s ease, border-color .16s ease;}
+  .au-admin-btn:hover{transform:translateY(-2px);color:var(--brand-ink);border-color:#9FD3F2;background:linear-gradient(180deg,#FFFFFF 0%,#E0F2FE 100%);
+    box-shadow:inset 0 1px 0 #fff, 0 5px 0 #A9CDE6, 0 10px 18px rgba(2,132,199,.22);}
+  .au-admin-btn:active{transform:translateY(2px);box-shadow:inset 0 2px 4px rgba(2,132,199,.18), 0 1px 0 #C3D8E7;}
+  .au-admin-btn:focus-visible{outline:2px solid var(--brand);outline-offset:3px;}
+  @media (prefers-reduced-motion: reduce){ .au-admin-btn{transition:none;} .au-admin-btn:hover,.au-admin-btn:active{transform:none;} }
+  .au-admin-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .au-modal{position:fixed;inset:0;background:rgba(12,40,60,.38);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;backdrop-filter:blur(2px);}
+  .au-modal-card{width:100%;max-width:360px;}
+  .au-row-btn{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+  .au-admin{min-height:100vh;background:var(--paper);}
+  .au-admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap;}
+  .au-admin-head::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,var(--brand),var(--sky));}
+  .au-admin-brand{display:flex;align-items:center;gap:12px;}
+  .au-admin-brand img{height:30px;}
+  .au-admin-brand b{font-size:15px;color:var(--ink);padding-left:12px;border-left:1px solid var(--line-strong);}
+  .au-admin-brand span{font-size:12px;color:var(--steel);}
+  .au-admin-main{max-width:1180px;margin:0 auto;padding:22px 24px 48px;display:flex;flex-direction:column;gap:14px;}
+  .au-admin-main .panel{margin:0;}
+  .au-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+  @media (max-width:860px){ .au-admin-grid{grid-template-columns:minmax(0,1fr);} }
+  .au-code-now{display:flex;gap:8px;margin:4px 0 14px;}
+  .au-code-now span{width:44px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--brand-dim);color:var(--brand-ink);font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;border:1px solid var(--brand-line);}
+  .au-code-now em{font-style:normal;font-size:12.5px;color:#8A5A15;}
+  .au-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .au-inline input,.au-inline select{padding:8px 10px;font-size:13px;}
+  .au-stack{display:flex;flex-direction:column;gap:10px;}
+  .au-bulk{margin-top:10px;font-size:12.5px;}
+  .au-bulk summary{cursor:pointer;color:var(--brand-ink);font-weight:600;}
+  .au-bulk form{display:flex;flex-direction:column;gap:8px;margin-top:8px;align-items:flex-start;}
+  .au-bulk textarea{width:100%;box-sizing:border-box;font-size:13px;}
+  .au-ol{margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:var(--ink);}
+  .tb-user{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px;}
+  .tb-user-name{font-size:12.5px;color:var(--steel);white-space:nowrap;}
+  .tb-user-name b{color:var(--ink);}
+  @media (max-width:1100px){ .tb-user-name{display:none;} }
+  @media (max-width:520px){ .au-row2{grid-template-columns:1fr;} .au-card{padding:20px 18px 16px;} }
+  .inv-meta{max-width:560px;max-height:calc(100vh - 32px);overflow:auto;}
+  .inv-auto{background:var(--brand-dim);border:1px solid var(--brand-line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;}
+  .inv-auto div{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+  .inv-auto span{color:var(--steel);font-weight:600;min-width:58px;}
+  .inv-auto b{color:var(--brand-ink);}
+  .inv-auto em{font-style:normal;color:var(--steel);font-size:11.5px;}
+  .inv-auto p{margin:2px 0 0;font-size:11.5px;color:var(--steel);}
+  .inv-fs{border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;margin:0;display:flex;flex-direction:column;gap:10px;}
+  .inv-fs legend{font-size:12px;font-weight:700;color:var(--ink);padding:0 4px;}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0C4A6E;color:#fff;padding:10px 16px;border-radius:8px;font-size:12.5px;z-index:50;}
 </style>
 </head>
@@ -685,11 +769,14 @@ const ZENIEL_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbgAAAClCAYAA
 /* ---------------- render shell ---------------- */
 function render(){
   const app = document.getElementById('app');
+  const gate = (typeof authGateHtml==='function') ? authGateHtml() : null;
+  if(gate!=null){ app.innerHTML = gate; return; }
   app.innerHTML = `
     <div class="topbar">
       <div class="tb-row1">
         <div class="tb-brand"><img class="tb-logo" src="${ZENIEL_LOGO}" alt="ZENIEL" /><span class="tb-sub"><b>HR-Biz 사업부 인재사업 2팀</b><span>인사·급여 자동화</span></span></div>
         <h1 class="tb-title"><span class="hr">HR</span> Operations Platform</h1>
+        ${typeof authChipHtml==='function' ? authChipHtml() : ''}
       </div>
       <nav class="tb-nav" aria-label="메뉴">
       ${[
@@ -1732,16 +1819,36 @@ function parseTarget(wb, selectedPeriod){
   const hdr = findDateHeader(ws, range, selectedPeriod);
   const headerRow = hdr.row;
   let dateCols = hdr.cols;
+  let monthShift = null, extraCols = [];
   if(selectedPeriod && hdr.mode==='date'){
     const inMonth = dateCols.filter(d=>d.date.startsWith(selectedPeriod));
     if(inMonth.length>=5) dateCols = inMonth;
+    else if(dateCols.length){
+      // 지난달 양식을 그대로 올린 경우: 머리글 날짜를 일자 기준으로 대상 월에 맞춘다 (파일에 쓸 때 머리글도 바꾼다)
+      const months = {}; dateCols.forEach(d=>{ const k=d.date.slice(0,7); months[k]=(months[k]||0)+1; });
+      const fromMonth = Object.entries(months).sort((a,b)=>b[1]-a[1])[0][0];
+      const maxDay = lastDayOf(selectedPeriod);
+      const seen = new Set(), mapped = [];
+      dateCols.forEach(d=>{
+        const day = +d.date.slice(8,10);
+        if(seen.has(day)) return; seen.add(day);
+        if(day > maxDay){ extraCols.push({...d, origDate:d.date}); return; }
+        mapped.push({...d, origDate:d.date, date:`${selectedPeriod}-${String(day).padStart(2,'0')}`});
+      });
+      dateCols = mapped;
+      monthShift = {from: fromMonth, to: selectedPeriod, missingDays: []};
+      for(let day=1; day<=maxDay; day++) if(!seen.has(day)) monthShift.missingDays.push(day);
+    }
   }
   const firstDateCol = dateCols[0] ? dateCols[0].col : range.e.c+1;
   const weekdayRow = headerRow+1;
+  const calcWeekday = iso => '일월화수목금토'[new Date(iso+'T00:00:00Z').getUTCDay()];
   dateCols.forEach(d=>{
     const c = ws[XLSX.utils.encode_cell({r:weekdayRow,c:d.col})];
     const txt = cellText(c);
-    d.weekday = /^[월화수목금토일]/.test(txt) ? txt.slice(0,1) : (()=>{ const x=new Date(d.date+'T00:00:00Z').getUTCDay(); return '일월화수목금토'[x]; })();
+    d.hasWeekdayCell = /^[월화수목금토일]/.test(txt);
+    // 날짜를 옮겼으면 요일도 새 날짜로 계산한다 (양식의 요일은 지난달 기준)
+    d.weekday = d.hasWeekdayCell && !d.origDate ? txt.slice(0,1) : calcWeekday(d.date);
   });
 
   let labelRow = headerRow>=0 ? findLabelRow(ws, range, headerRow, firstDateCol-1) : -1;
@@ -1775,7 +1882,7 @@ function parseTarget(wb, selectedPeriod){
     };
     employees.push({row:R, name, site: siteCol!=null ? (get(siteCol)||'') : '', empId:get(empIdCol), hire:get(hireCol), term:get(termCol)});
   }
-  return {sheetName, headerRow, labelRow, nameCol, siteCol, labelTexts, dateCols, employees, auto, range, dateMode:hdr.mode};
+  return {sheetName, headerRow, labelRow, nameCol, siteCol, labelTexts, dateCols, employees, auto, range, dateMode:hdr.mode, monthShift, extraCols, weekdayRow};
 }
 
 function parseOvertimeTarget(wb){
@@ -2549,11 +2656,73 @@ function writeChangeLog(t, report){
   t.wb.Sheets['변경내역'] = logWs;
 }
 
+// 날짜 글자를 원래 모양(구분자·자릿수·요일 괄호) 그대로 새 날짜로 바꾼다
+function reformatDateText(orig, iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const wd = '일월화수목금토'[new Date(iso+'T00:00:00Z').getUTCDay()];
+  const pad = (n, like) => like.length>=2 ? String(n).padStart(2,'0') : String(n);
+  const fixWd = rest => rest.replace(/[월화수목금토일](?=\s*(요일)?\s*\)?\s*$)/, wd);
+  let mm = /^(\d{4})(\s*[.\-\/년]\s*)(\d{1,2})(\s*[.\-\/월]\s*)(\d{1,2})(.*)$/.exec(orig);
+  if(mm) return `${y}${mm[2]}${pad(m,mm[3])}${mm[4]}${pad(d,mm[5])}${fixWd(mm[6])}`;
+  mm = /^(\d{1,2})(\s*[\/.\-월]\s*)(\d{1,2})(.*)$/.exec(orig);
+  if(mm) return `${pad(m,mm[1])}${mm[2]}${pad(d,mm[3])}${fixWd(mm[4])}`;
+  return iso;
+}
+function isoToSerialNum(iso){ const [y,m,d]=iso.split('-').map(Number); return Math.round((Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/86400000); }
+// 지난달 양식이면 머리글 날짜·요일·제목의 연월을 대상 월로 바꾼다
+function retargetTemplateHeader(t, ws, report){
+  const sh = t.monthShift; if(!sh) return;
+  const [fy, fm] = sh.from.split('-').map(Number), [ty, tm] = sh.to.split('-').map(Number);
+  const log = (addr, oldV, newV) => report.changes.push(['(양식)', addr, '머리글', '', String(oldV), String(newV)]);
+  const setDate = (addr, iso) => {
+    const c = ws[addr]; if(!c) return;
+    const oldShown = c.w || c.v;
+    if(c.t==='n'){ c.v = isoToSerialNum(iso); delete c.w; delete c.f; }
+    else { c.v = reformatDateText(cellText(c), iso); c.t = 's'; delete c.w; delete c.f; }
+    log(addr, oldShown, c.t==='n' ? iso : c.v);
+  };
+  t.dateCols.forEach(d=>{
+    if(!d.origDate) return;
+    setDate(XLSX.utils.encode_cell({r:t.headerRow, c:d.col}), d.date);
+    if(d.hasWeekdayCell){
+      const wa = XLSX.utils.encode_cell({r:t.weekdayRow, c:d.col}), wc = ws[wa];
+      if(wc){ const old = cellText(wc); const nv = d.weekday + old.slice(1); if(nv!==old){ wc.v = nv; wc.t='s'; delete wc.w; delete wc.f; } }
+    }
+  });
+  // 대상 월에 없는 날(예: 31일) 칸은 머리글·요일을 비운다
+  (t.extraCols||[]).forEach(d=>{
+    [t.headerRow, t.weekdayRow].forEach(r=>{
+      const a = XLSX.utils.encode_cell({r, c:d.col}), c = ws[a];
+      if(c && c.v!=null && c.v!==''){ log(a, c.w||c.v, '(빈칸)'); c.t='s'; c.v=''; delete c.w; delete c.f; }
+    });
+  });
+  // 머리글 위쪽 제목 칸의 "2026년 7월", "2026.07", "2026-07" 같은 연월 표기
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let R=range.s.r; R<t.headerRow; R++){
+    for(let C=range.s.c; C<=range.e.c; C++){
+      const a = XLSX.utils.encode_cell({r:R,c:C}), c = ws[a];
+      if(!c || c.v==null) continue;
+      if(c.t==='s'){
+        const old = String(c.v);
+        let nv = old.replace(/(\d{4})(\s*년\s*)(\d{1,2})(\s*월)/g, (all,y,s1,m,s2)=> +y===fy && +m===fm ? `${ty}${s1}${m.length>1?String(tm).padStart(2,'0'):tm}${s2}` : all);
+        nv = nv.replace(/(\d{4})([.\-\/])(\d{1,2})(?![\d])/g, (all,y,sp,m)=> +y===fy && +m===fm ? `${ty}${sp}${m.length>1?String(tm).padStart(2,'0'):tm}` : all);
+        if(nv!==old){ c.v = nv; delete c.w; delete c.h; delete c.r; log(a, old, nv); }
+      } else if(c.t==='n' && !c.f){
+        const iso = cellToISO(c, null);
+        if(iso && iso.startsWith(sh.from)){
+          const day = Math.min(+iso.slice(8,10), lastDayOf(sh.to));
+          setDate(a, `${sh.to}-${String(day).padStart(2,'0')}`);
+        }
+      }
+    }
+  }
+}
 function fillTarget(){
   const t = state.target;
   const ws = t.wb.Sheets[t.sheetName];
   const report = {filled:0, kept:0, unmatched:[], changes:[]};
   const writeCell = makeWriteCell(ws);
+  retargetTemplateHeader(t, ws, report);
 
   // Step 1: 근무자 정보(로스터) 매칭 — 거래처코드/거래처/현장코드/현장/사번/급여구분/
   // 그룹입사일/입사일/퇴사일 등 인적사항부터 채운다.
@@ -2594,6 +2763,7 @@ function fillRosterOnly(){
   const ws = t.wb.Sheets[t.sheetName];
   const report = {filled:0, kept:0, unmatched:[], changes:[]};
   const writeCell = makeWriteCell(ws);
+  retargetTemplateHeader(t, ws, report);
   Object.values(state.roster).forEach(r=>{
     ensureEmployeeRow(t, ws, r.displayName, r.fields['현장']||'');
   });
@@ -3935,7 +4105,8 @@ async function applyRole(entry){
     state.sites = [...new Set(t.employees.map(e=>e.site).filter(Boolean))];
     if(!state.sites.length) state.sites = ['현장'];
     state.sources.forEach(s=>{ if(!state.sites.includes(s.site)) s.site = state.sites[0]; });
-    entry.note = `직원 ${t.employees.length}명 · ${t.dateCols.length}일 (${t.dateCols[0].date.slice(5)} ~ ${t.dateCols[t.dateCols.length-1].date.slice(5)})${t.dateMode==='day'?' · 일자 머리글':''}`;
+    entry.note = `직원 ${t.employees.length}명 · ${t.dateCols.length}일 (${t.dateCols[0].date.slice(5)} ~ ${t.dateCols[t.dateCols.length-1].date.slice(5)})${t.dateMode==='day'?' · 일자 머리글':''}`
+      + (t.monthShift ? ` · 양식 날짜 ${+t.monthShift.from.slice(5)}월 → ${+t.monthShift.to.slice(5)}월로 바꿔서 씀${t.monthShift.missingDays.length?` (${t.monthShift.missingDays.join('·')}일 칸 없음)`:''}` : '');
   } else if(entry.role==='ot'){
     const t = loadOtTarget(entry);
     const prev = state.files.find(f=>f!==entry && f.role==='ot');
@@ -3998,6 +4169,7 @@ async function reloadForPeriod(){
 /* ---------- 분석 / 재구성 ---------- */
 function rebuildGrids(){
   useRunSettings();
+  reconcileRecordNames();
   if(state.target) buildGridFromSources();
   if(state.generic.overtime.target) buildCombinedOvertimeGrid();
 }
@@ -4388,6 +4560,7 @@ function wzStep4(){
     <h1>다운로드</h1>
     <p>원본 양식의 기존 값은 그대로 두고 필요한 칸만 채웠습니다. 각 파일의 "변경내역" 시트에서 채운 내용을 모두 확인할 수 있습니다.</p>
   </div>
+  ${state.target && state.target.monthShift ? `<div class="notice" style="margin-bottom:14px;">올린 월근태 양식이 ${+state.target.monthShift.from.slice(5)}월 양식이라, 머리글 날짜·요일·제목의 연월을 ${+state.target.monthShift.to.slice(5)}월로 바꿔서 채웠습니다.${state.target.monthShift.missingDays.length?` 양식에 ${state.target.monthShift.missingDays.join('·')}일 칸이 없어 그 날은 빠졌습니다.`:''}${(state.target.extraCols||[]).length?` ${state.target.extraCols.map(d=>+d.origDate.slice(8)).join('·')}일 칸은 비웠습니다.`:''}</div>` : ''}
   <div class="grid2">
     ${att ? `<div class="panel dl-card">
       <h2>월근태일괄등록</h2>
@@ -4706,6 +4879,7 @@ function writeText(doc, c, text){
   if(text==null || text==='') return;
   c.setAttribute('t','inlineStr');
   const is = doc.createElementNS(SSML,'is'), t = doc.createElementNS(SSML,'t');
+  t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve'); // 앞 공백·줄바꿈 유지
   t.textContent = String(text); is.appendChild(t); c.appendChild(is);
 }
 function writeNumber(doc, c, num){
@@ -4749,6 +4923,60 @@ function stripCachedFormulaValues(doc){
 function setRowNumber(rowEl, newNum){
   rowEl.setAttribute('r', String(newNum));
   kids(rowEl,'c').forEach(c=>{ const p = cellRefParts(c.getAttribute('r')); if(p) c.setAttribute('r', p.col + newNum); });
+}
+
+/* ---- 인보이스(청구내역서) 시트: 건명·기간·작성자·담당자·책임자 ---- */
+function invoiceSheetOf(ctx){ return ctx.sheets.find(s=>/인보이스|청구/.test(s.name) && s!==ctx.sheet) || ctx.sheets.find(s=>s!==ctx.sheet) || null; }
+// "담당자 : 홍길동 매니저 / 연락처 : … / 이메일 : …" 같은 줄에서 값만 꺼낸다
+function readLabeled(text, label){ const m = new RegExp('^\\s*'+label+'\\s*:\\s*(.*)$','m').exec(text||''); return m ? m[1].trim() : ''; }
+function writeLabeled(text, label, value){
+  if(value==null || value==='') return text;
+  const re = new RegExp('^(\\s*'+label+'\\s*:\\s*)(.*)$','m');
+  return re.test(text) ? text.replace(re, (all, pre)=>pre+value) : text;
+}
+function retargetMonthText(text, period){
+  if(!period || !text) return text;
+  const [ty, tm] = period.split('-').map(Number), last = new Date(Date.UTC(ty, tm, 0)).getUTCDate();
+  const pad = (n, like) => like && like.length>=2 ? String(n).padStart(2,'0') : String(n);
+  let out = text.replace(/(\d{4})(\s*년\s*)(\d{1,2})(\s*월\s*)(\d{1,2})(\s*일\s*)(~|∼|～|–|-)(\s*)(\d{4})(\s*년\s*)(\d{1,2})(\s*월\s*)(\d{1,2})(\s*일)/g,
+    (all, y1,a1,m1,b1,d1,c1,sep,sp,y2,a2,m2,b2,d2,c2) => `${ty}${a1}${pad(tm,m1)}${b1}${pad(1,d1)}${c1}${sep}${sp}${ty}${a2}${pad(tm,m2)}${b2}${pad(last,d2)}${c2}`);
+  out = out.replace(/(\d{4})([.\-\/])(\d{1,2})\2(\d{1,2})(\s*(?:~|∼|～|–)\s*)(\d{4})([.\-\/])(\d{1,2})\7(\d{1,2})/g,
+    (all, y1,s1,m1,d1,sep,y2,s2,m2,d2) => `${ty}${s1}${pad(tm,m1)}${s1}${pad(1,d1)}${sep}${ty}${s2}${pad(tm,m2)}${s2}${pad(last,d2)}`);
+  out = out.replace(/(\d{4})(\s*년\s*)(\d{1,2})(\s*월)(?!\s*\d)/g, (all, y, a, m, b) => `${ty}${a}${pad(tm,m)}${b}`);
+  return out;
+}
+async function invReadHeader(ctx){
+  const s = invoiceSheetOf(ctx); if(!s) return null;
+  const doc = parseXml(await ctx.zip.file(s.path).async('string'));
+  const h = {sheet: s.name, writer:'', mgr:{name:'',phone:'',email:''}, boss:{name:'',phone:'',email:''}, title:'', period:''};
+  Array.from(doc.getElementsByTagNameNS(SSML,'c')).forEach(c=>{
+    if(kid(c,'f')) return;
+    const v = cellValue(c, ctx.shared); if(typeof v!=='string') return;
+    if(/작성자\s*:/.test(v)) h.writer = readLabeled(v, '작성자');
+    if(/담당자\s*:/.test(v)) h.mgr = {name: readLabeled(v,'담당자'), phone: readLabeled(v,'연락처'), email: readLabeled(v,'이메일')};
+    if(/책임자\s*:/.test(v)) h.boss = {name: readLabeled(v,'책임자'), phone: readLabeled(v,'연락처'), email: readLabeled(v,'이메일')};
+    if(/건\s*명\s*:/.test(v)) h.title = v.replace(/^\s*건\s*명\s*:\s*/,'').trim();
+    if(/\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일\s*[~∼～–-]/.test(v)) h.period = (/\d{4}\s*년[^~∼～–-]*[~∼～–-]\s*\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/.exec(v)||[''])[0];
+  });
+  return h;
+}
+async function invUpdateInvoiceSheet(ctx, opts){
+  const s = invoiceSheetOf(ctx); if(!s) return [];
+  const doc = parseXml(await ctx.zip.file(s.path).async('string'));
+  const changed = [];
+  const m = opts.meta || {};
+  Array.from(doc.getElementsByTagNameNS(SSML,'c')).forEach(c=>{
+    if(kid(c,'f')) return;
+    const v = cellValue(c, ctx.shared); if(typeof v!=='string' || !v.trim()) return;
+    let nv = v;
+    if(/\d{4}\s*년\s*\d{1,2}\s*월/.test(nv) || /\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2}\s*[~∼～–]/.test(nv)) nv = retargetMonthText(nv, opts.period);
+    if(/작성자\s*:/.test(nv)) nv = writeLabeled(nv, '작성자', m.writer);
+    if(/담당자\s*:/.test(nv)){ nv = writeLabeled(nv,'담당자', m.mgrName); nv = writeLabeled(nv,'연락처', m.mgrPhone); nv = writeLabeled(nv,'이메일', m.mgrEmail); }
+    if(/책임자\s*:/.test(nv)){ nv = writeLabeled(nv,'책임자', m.bossName); nv = writeLabeled(nv,'연락처', m.bossPhone); nv = writeLabeled(nv,'이메일', m.bossEmail); }
+    if(nv!==v){ writeText(doc, c, nv); changed.push({ref: c.getAttribute('r'), from: v, to: nv}); }
+  });
+  if(changed.length) ctx.zip.file(s.path, serializeXml(doc));
+  return changed;
 }
 
 /* ---- 메인: 반영된 xlsx 만들기 ----
@@ -4901,6 +5129,8 @@ async function invBuild(ctx, plan, opts){
     stripCachedFormulaValues(sdoc);
     zip.file(s.path, serializeXml(sdoc));
   }
+  // 8-1) 인보이스 시트의 건명·기간·작성자·담당자·책임자
+  if(opts && opts.period) ctx.invoiceChanges = await invUpdateInvoiceSheet(ctx, opts);
   // 9) 이름 정의(필터 범위 등) + 열 때 전체 다시 계산 + calcChain 제거
   const wbXml = parseXml(await zip.file('xl/workbook.xml').async('string'));
   Array.from(wbXml.getElementsByTagNameNS(SSML,'definedName')).forEach(dn=>{
@@ -4951,11 +5181,49 @@ const PT_GRADE_RE = /PT|파트|알바|아르바이트|시간제|일용/i;
 const WORK_OVERRIDE = new Set(['출근','지각','외출']);
 
 // 분석 결과를 직원별로 모은다: 출근일·휴일출근일·연장·야간(분)
+// 근태표에서 읽힌 이름을 직원 이름(사원명부·양식·인보이스)에 맞춘다.
+// 1) 정확히 같은 이름은 그대로 2) 남은 이름끼리만 같은 길이·한 글자 차이로 1:1 연결 3) 사용자가 직접 연결한 별칭이 가장 우선
+state.nameAliases = state.nameAliases || {};
+function knownEmployeeNames(){
+  const set = new Map();
+  const add = n => { const k = normName(n); if(k && !set.has(k)) set.set(k, String(n).trim()); };
+  Object.values(state.roster||{}).forEach(r=>add(r.displayName));
+  if(state.target) state.target.employees.forEach(e=>add(e.name));
+  if(state.invoice && state.invoice.info) state.invoice.info.employees.forEach(e=>add(e.name));
+  const ob = state.generic && state.generic.overtime && state.generic.overtime._blocks;
+  if(ob) Object.values(ob).forEach(b=>add(b.name));
+  return set;
+}
+function reconcileRecordNames(){
+  const known = knownEmployeeNames();
+  const recNames = new Map();
+  const collect = r => { if(r && r.name){ const k = normName(r.name); if(!recNames.has(k)) recNames.set(k, r.name); } };
+  state.sources.forEach(s=>{ (s.records||[]).forEach(collect); (s.otRecords||[]).forEach(collect); });
+  const map = {};
+  // 직접 연결한 별칭
+  Object.entries(state.nameAliases).forEach(([from,to])=>{ if(recNames.has(from)) map[from] = to; });
+  const claimed = new Set([...recNames.keys()].filter(k=>known.has(k)));
+  Object.values(map).forEach(to=>claimed.add(normName(to)));
+  const pending = [...recNames.keys()].filter(k=>!known.has(k) && !map[k]);
+  const free = [...known.keys()].filter(k=>!claimed.has(k));
+  const near = (a,b) => a.length===b.length && a.length>=2 && editDistanceLE1(a,b);
+  pending.forEach(k=>{
+    const c = free.filter(f=>near(f,k));
+    if(c.length!==1) return;
+    const others = pending.filter(p=>p!==k && near(c[0],p));   // 같은 직원을 노리는 다른 이름이 있으면 연결하지 않는다
+    if(others.length) return;
+    map[k] = known.get(c[0]);
+  });
+  const fix = r => { if(r && r.name){ const to = map[normName(r.name)]; if(to){ r.readAs = r.readAs || r.name; r.name = to; } } };
+  state.sources.forEach(s=>{ (s.records||[]).forEach(fix); (s.otRecords||[]).forEach(fix); });
+  return map;
+}
 function invAnalysisSummary(){
+  reconcileRecordNames();
   const p = state.selectedPeriod;
   const map = new Map();
   const get = name => { const k = normName(name); if(!map.has(k)) map.set(k, {name, status:{}, ot:0, night:0}); return map.get(k); };
-  state.sources.forEach(s=>(s.records||[]).forEach(r=>{ if(r.name && r.date && r.date.startsWith(p)) get(r.name).status[r.date] = r.status; }));
+  state.sources.forEach(s=>(s.records||[]).forEach(r=>{ if(r.name && r.date && r.date.startsWith(p)){ const x = get(r.name); x.status[r.date] = r.status; if(r.readAs && normName(r.readAs)!==normName(r.name)) x.readAs = r.readAs; } }));
   state.dateOverrides.forEach(o=>{ if(o.name && o.date && o.date.startsWith(p)) get(matchRosterName(o.name)).status[o.date] = WORK_OVERRIDE.has(o.status) ? 'O' : o.status; });
   Object.entries(state.manualCells||{}).forEach(([key,val])=>{
     const [, name, date] = key.split('||'); if(!name || !date || !date.startsWith(p)) return;
@@ -4977,11 +5245,11 @@ function invAnalysisSummary(){
   });
   return map;
 }
-function invFindSummary(summary, name, used){
+function invFindSummary(summary, name, used, known){
   const k = normName(name);
   if(summary.has(k) && !used.has(k)) return summary.get(k);
-  // 같은 길이·한 글자 차이, 후보가 하나일 때만
-  const cands = [...summary.entries()].filter(([key])=>!used.has(key) && key.length===k.length && k.length>=2 && editDistanceLE1(key, k));
+  // 같은 길이·한 글자 차이, 후보가 하나일 때만. 명단·양식에 정확히 있는 다른 직원의 기록은 후보에서 뺀다
+  const cands = [...summary.entries()].filter(([key])=>!used.has(key) && !(known && known.has(key)) && key.length===k.length && k.length>=2 && editDistanceLE1(key, k));
   return cands.length===1 ? cands[0][1] : null;
 }
 function rosterGrade(name, grades){
@@ -5023,27 +5291,58 @@ function invBuildRowsFromAnalysis(){
       holDays: x ? x.holDays : 0,
     };
   };
+  // 기준 명단: 선택한 현장의 직원명단(사원명부). 명단이 있으면 명단에 있는 사람만 인보이스에 넣는다.
+  const rosterList = Object.values(state.roster||{});
+  const useRoster = rosterList.length > 0;
+  const rosterKeyOf = name => { const m = matchRosterName(name); return state.roster[normName(m)] ? normName(m) : null; };
+  const rosterUsed = new Set();
   const rows = [];
+  // 정확히 같은 이름을 먼저 모두 연결하고, 남은 행만 한 글자 차이로 찾는다
+  const knownNames = knownEmployeeNames();
+  const exactOf = new Map();
+  info.employees.forEach(e=>{ const k = normName(e.name); if(summary.has(k) && !used.has(k)){ exactOf.set(e.row, summary.get(k)); used.add(k); } });
   info.employees.forEach(e=>{
-    const x = invFindSummary(summary, e.name, used);
+    const x = exactOf.get(e.row) || invFindSummary(summary, e.name, used, knownNames);
     if(x) used.add(normName(x.name));
     const row = fill(e, x);
-    row.matched = x ? x.name : '';
+    row.matched = x ? (x.readAs || x.name) : '';
     row.srcRow = e.row;
     row.kind = x ? 'keep' : 'nodata';
-    row.include = x ? true : employedInPeriod(row.hire, row.term, p);
+    const rk = rosterKeyOf(e.name);
+    if(rk) rosterUsed.add(rk);
+    if(useRoster && !rk){
+      row.kind = 'notInRoster';   // 기존 인보이스에만 있고 이번 달 직원명단에 없는 사람 (퇴사자 등) → 행 삭제
+      row.include = false;
+    } else {
+      row.include = x ? true : employedInPeriod(row.hire, row.term, p);
+    }
     rows.push(row);
   });
   summary.forEach((x, k)=>{
     if(used.has(k)) return;
+    const rk = rosterKeyOf(x.name);
     if(x.workDays===0 && !x.ot && !x.night) return; // 출근 기록이 없는 이름은 넣지 않는다
-    const row = fill({name: x.name, grade:'', store:'', hire:'', term:''}, x);
-    const inRoster = !!state.roster[normName(x.name)];
-    row.matched = x.name;
-    row.srcRow = null; row.kind = inRoster ? 'new' : 'unknown';
-    row.include = inRoster; // 사원명부에 없는 이름은 잘못 읽힌 이름일 수 있어 기본으로 빼둔다
+    if(rk && rosterUsed.has(rk)) return;            // 이미 다른 행으로 들어간 사람
+    const row = fill({name: rk ? state.roster[rk].displayName : x.name, grade:'', store:'', hire:'', term:''}, x);
+    row.matched = x.readAs || x.name;
+    row.srcRow = null; row.kind = rk ? 'new' : 'unknown';
+    row.include = !!rk; // 직원명단에 없는 이름은 잘못 읽힌 이름일 수 있어 기본으로 빼둔다
+    if(rk) rosterUsed.add(rk);
     rows.push(row);
   });
+  // 직원명단에 있는데 인보이스·근태 어디에도 없는 사람도 명단 기준으로 넣는다
+  if(useRoster){
+    rosterList.forEach(r=>{
+      const rk = normName(r.displayName);
+      if(rosterUsed.has(rk)) return;
+      const row = fill({name: r.displayName, grade:'', store:'', hire:'', term:''}, null);
+      row.matched = ''; row.srcRow = null; row.kind = 'rosterOnly';
+      row.include = employedInPeriod(row.hire, row.term, p);
+      rosterUsed.add(rk);
+      rows.push(row);
+    });
+  }
+  inv.basis = useRoster ? {roster: rosterList.length, site: (selectedSite()||{}).name || ''} : null;
   inv.rows = rows;
   inv.filledAt = Date.now();
 }
@@ -5057,6 +5356,7 @@ async function invLoadFile(file){
     const ctx = await invLoad(buf);
     inv.file = file; inv.buf = buf; inv.info = ctx.info;
     inv.grades = await invGrades(ctx);
+    inv.header = await invReadHeader(ctx);
     invBuildRowsFromAnalysis();
   }catch(err){
     inv.error = err.message || String(err);
@@ -5075,7 +5375,7 @@ function invValidate(){
   });
   return problems;
 }
-async function invDownload(){
+async function invDownload(meta){
   const inv = state.invoice;
   const problems = invValidate();
   if(problems.length){ toast(problems.slice(0,3).join(' · '), {error:true}); return; }
@@ -5089,14 +5389,59 @@ async function invDownload(){
     }));
     // 기존 직원은 원래 순서, 새 직원은 뒤에
     plan.sort((a,b)=> (a.srcRow==null) - (b.srcRow==null) || (a.srcRow||0) - (b.srcRow||0));
-    const blob = await invBuild(ctx, plan, {period: state.selectedPeriod});
+    const blob = await invBuild(ctx, plan, {period: state.selectedPeriod, meta});
     const base = inv.file.name.replace(/\.xlsx?$/i,'');
-    await saveFile(`${base}_${state.selectedPeriod}_반영.xlsx`, blob);
+    const [py, pm] = state.selectedPeriod.split('-');
+    // 파일 이름 끝의 "26.07" 같은 연월은 대상 월로 바꾼다
+    const name = /\d{2}[.\-_]\d{2}\s*$/.test(base) ? base.replace(/(\d{2})([.\-_])(\d{2})\s*$/, `${py.slice(2)}$2${pm}`) : `${base}_${py.slice(2)}.${pm}`;
+    await saveFile(`${name}.xlsx`, blob);
+    inv.modal = false;
   }catch(err){
     console.error(err);
     toast('인보이스를 만들지 못했습니다: '+(err.message||err), {error:true});
   }
   inv.busy = false; render();
+}
+
+function invMetaDefaults(){
+  const h = state.invoice.header || {mgr:{}, boss:{}};
+  let saved = {}; try{ saved = JSON.parse(localStorage.getItem('hrp_invoice_people')||'{}'); }catch(_){}
+  const me = (typeof AUTH!=='undefined' && AUTH.user) ? AUTH.user.name : '';
+  return {
+    writer: saved.writer || h.writer || me,
+    mgrName: saved.mgrName || h.mgr.name, mgrPhone: saved.mgrPhone || h.mgr.phone, mgrEmail: saved.mgrEmail || h.mgr.email,
+    bossName: saved.bossName || h.boss.name, bossPhone: saved.bossPhone || h.boss.phone, bossEmail: saved.bossEmail || h.boss.email,
+  };
+}
+function invModalHtml(){
+  const inv = state.invoice, d = inv.metaDraft || invMetaDefaults(), h = inv.header || {};
+  const [py, pm] = state.selectedPeriod.split('-').map(Number), last = new Date(Date.UTC(py, pm, 0)).getUTCDate();
+  const mm = String(pm).padStart(2,'0');
+  const f = (k, label, ph, type) => `<label class="au-fld"><span>${label}</span><input name="${k}" ${type?`type="${type}"`:''} value="${escapeHtml(d[k]||'')}" placeholder="${ph}" /></label>`;
+  return `<div class="au-modal" role="dialog" aria-modal="true" aria-labelledby="invMetaTitle">
+    <form class="au-card au-modal-card inv-meta" data-inv-form="meta" novalidate>
+      <h2 id="invMetaTitle">인보이스 시트 내용 확인</h2>
+      <div class="inv-auto">
+        <div><span>건명</span><b>${py}년 ${mm}월 청구내역서</b>${h.title && !h.title.includes(`${py}년 ${mm}월`) ? `<em>기존: ${escapeHtml(h.title)}</em>` : ''}</div>
+        <div><span>청구 기간</span><b>${py}년 ${mm}월 01일 ~ ${py}년 ${mm}월 ${last}일</b>${h.period && !h.period.includes(`${py}년 ${mm}월`) ? `<em>기존: ${escapeHtml(h.period)}</em>` : ''}</div>
+        <p>건명과 기간은 대상 월로 자동으로 바뀝니다.</p>
+      </div>
+      ${f('writer','작성자','예: 조송현 매니저')}
+      <fieldset class="inv-fs"><legend>제니엘 HR 담당자 — 담당자</legend>
+        ${f('mgrName','이름·직함','예: 조송현 매니저')}
+        <div class="au-row2">${f('mgrPhone','연락처','010-0000-0000','tel')}${f('mgrEmail','이메일','name@zeniel.co.kr','email')}</div>
+      </fieldset>
+      <fieldset class="inv-fs"><legend>제니엘 HR 담당자 — 책임자</legend>
+        ${f('bossName','이름·직함','예: 정성규 팀장')}
+        <div class="au-row2">${f('bossPhone','연락처','010-0000-0000','tel')}${f('bossEmail','이메일','name@zeniel.co.kr','email')}</div>
+      </fieldset>
+      <p class="au-note" style="text-align:left;">빈칸으로 두면 원래 파일 내용을 그대로 둡니다. 입력한 내용은 다음에도 미리 채워집니다.</p>
+      <div class="au-row-btn">
+        <button type="button" class="btn ghost" data-inv="meta-cancel">취소</button>
+        <button type="submit" class="btn primary" ${inv.busy?'disabled':''}>${inv.busy?'<span class="spin light"></span> 만드는 중':'이 내용으로 받기'}</button>
+      </div>
+    </form>
+  </div>`;
 }
 
 /* ---------- 화면 ---------- */
@@ -5110,6 +5455,8 @@ function viewInvoice(){
   const dropped = inv.rows.filter(r=>!r.include && r.srcRow!=null).length;
   const problems = inv.info ? invValidate() : [];
   const fmtMin = m => { m = +m||0; return m ? `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}` : ''; };
+  // 어느 직원에게도 연결되지 않은 근태표 이름 (직접 연결 후보)
+  const orphanNames = inv.rows.filter(r=>r.kind==='unknown').map(r=>r.matched||r.name);
   return `
   <div class="content inv-page">
     <div class="page-head">
@@ -5151,9 +5498,11 @@ function viewInvoice(){
       <div class="run-head" style="margin-bottom:10px;">
         <div>
           <h2>② 반영할 내용 확인</h2>
+          ${inv.basis ? `<p class="desc" style="margin:0 0 4px;"><b>${escapeHtml(inv.basis.site)} 직원명단 ${inv.basis.roster}명 기준</b>입니다. 기존 인보이스에만 있고 명단에 없는 사람은 행을 삭제합니다.</p>`
+            : `<div class="notice" style="margin:0 0 8px;border-color:#EAD3A6;background:var(--warn-dim);">현장이 선택되지 않아 직원명단 없이 <b>기존 인보이스 명단</b>을 기준으로 채웠습니다. 퇴사자를 빼려면 1단계에서 현장을 고르고 "분석 결과로 다시 채우기"를 누르세요.</div>`}
           <p class="desc" style="margin:0;">값을 바로 고칠 수 있습니다. 연장·야간·휴일근무는 <b>분</b> 단위입니다(파일과 같음). 휴일근무는 휴일(규칙 관리의 휴일 요일·법정 공휴일)에 출근한 날 × 일 소정근로시간입니다.</p>
         </div>
-        <div class="mini-kpis" style="margin:0;"><span><b>${cnt('keep')}</b>유지</span><span><b>${cnt('new')}</b>신규</span><span><b>${cnt('nodata')}</b>근태 없음</span><span><b>${dropped}</b>행 삭제</span><span><b>${inv.info.employees.length}→${inc.length}</b>명</span></div>
+        <div class="mini-kpis" style="margin:0;"><span><b>${cnt('keep')}</b>유지</span><span><b>${cnt('new')+cnt('rosterOnly')}</b>신규</span><span><b>${cnt('nodata')}</b>근태 없음</span><span><b>${dropped}</b>행 삭제</span><span><b>${inv.info.employees.length}→${inc.length}</b>명</span></div>
       </div>
       <div class="tablewrap emp-wrap" style="max-height:max(300px, calc(100vh - 420px));">
         <table class="list emp-table inv-table">
@@ -5165,13 +5514,20 @@ function viewInvoice(){
           <tbody>
             ${inv.rows.map((r,i)=>{
               const badGrade = r.include && inv.grades.length && !inv.grades.includes(r.grade);
-              const pill = !r.include ? (r.srcRow!=null ? '<span class="pill" style="background:var(--danger-dim);color:var(--danger);">행 삭제</span>' : (r.kind==='unknown' ? '<span class="pill" title="근태표에서 읽혔지만 사원명부에 없는 이름입니다. 맞는 사람이면 체크하세요.">명부에 없음 · 제외</span>' : '<span class="pill">제외</span>'))
-                : r.kind==='new' ? '<span class="pill brand">신규</span>' : r.kind==='unknown' ? '<span class="pill warn" title="근태표에서 읽혔지만 사원명부·인보이스에 없는 이름입니다">명부에 없음</span>' : r.kind==='nodata' ? '<span class="pill warn" title="이번 근태 분석에 이 사람이 없습니다">근태 없음</span>' : '<span class="pill good">유지</span>';
+              const pill = !r.include ? (r.kind==='notInRoster' ? '<span class="pill" style="background:var(--danger-dim);color:var(--danger);" title="기존 인보이스에는 있지만 이번 달 직원명단에 없습니다 (퇴사자 등). 이 행은 삭제됩니다. 넣어야 하면 체크하세요.">명단에 없음 · 행 삭제</span>'
+                  : r.srcRow!=null ? '<span class="pill" style="background:var(--danger-dim);color:var(--danger);">행 삭제</span>'
+                  : (r.kind==='unknown' ? '<span class="pill" title="근태표에서 읽혔지만 직원명단에 없는 이름입니다. 맞는 사람이면 체크하세요.">명단에 없음 · 제외</span>' : '<span class="pill">제외</span>'))
+                : r.kind==='new' ? '<span class="pill brand">신규</span>' : r.kind==='rosterOnly' ? '<span class="pill brand" title="직원명단에는 있지만 기존 인보이스와 근태 분석에 없는 사람입니다">신규 · 근태 없음</span>' : r.kind==='unknown' ? '<span class="pill warn" title="근태표에서 읽혔지만 사원명부·인보이스에 없는 이름입니다">명부에 없음</span>' : r.kind==='nodata' ? '<span class="pill warn" title="이번 근태 분석에서 이 이름을 찾지 못했습니다. 근태표에 다른 이름으로 읽혔으면 \'근태표 이름\' 칸에서 연결하세요.">근태 없음</span>' : '<span class="pill good">유지</span>';
               return `<tr class="${r.include?'':'off-row'}">
                 <td><input type="checkbox" data-inv="inc" data-i="${i}" ${r.include?'checked':''} aria-label="${escapeHtml(r.name)} 반영"/></td>
                 <td>${pill}</td>
                 <td><input class="cellin w-name" data-inv="f" data-k="name" data-i="${i}" value="${escapeHtml(r.name)}" ${r.srcRow!=null?'readonly':''} aria-label="성명"/></td>
-                <td class="muted" style="white-space:nowrap;">${r.matched ? (normName(r.matched)===normName(r.name) ? '<span class="pill good">일치</span>' : `<span class="pill warn" title="이름이 한 글자 달라 이 직원으로 연결했습니다">${escapeHtml(r.matched)}</span>`) : '–'}</td>
+                <td class="muted" style="white-space:nowrap;">${r.matched
+                  ? (normName(r.matched)===normName(r.name) ? '<span class="pill good">일치</span>'
+                     : `<span class="pill warn" title="근태표에는 '${escapeHtml(r.matched)}'(으)로 적혀 있어 이 직원으로 연결했습니다">${escapeHtml(r.matched)}</span>${state.nameAliases[normName(r.matched)] ? ` <button type="button" class="au-link" data-inv="unlink" data-from="${escapeHtml(r.matched)}" title="직접 연결 풀기">풀기</button>` : ''}`)
+                  : (orphanNames.length && r.srcRow!=null || orphanNames.length && r.kind==='rosterOnly'
+                     ? `<select class="cellin" data-inv="link" data-to="${escapeHtml(r.name)}" aria-label="${escapeHtml(r.name)}에 연결할 근태표 이름" title="근태표에서 다른 이름으로 읽혔으면 골라주세요"><option value="">근태표 이름 연결…</option>${orphanNames.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}</select>`
+                     : '–')}</td>
                 <td><select class="cellin w-grade ${badGrade?'bad':''}" data-inv="f" data-k="grade" data-i="${i}" aria-label="구분">
                   <option value="">고르기</option>${inv.grades.map(g=>`<option ${r.grade===g?'selected':''}>${escapeHtml(g)}</option>`).join('')}
                   ${r.grade && !inv.grades.includes(r.grade) ? `<option selected>${escapeHtml(r.grade)}</option>` : ''}</select></td>
@@ -5196,7 +5552,8 @@ function viewInvoice(){
 
     ${actionBar('',
       `<button type="button" class="btn primary" data-inv="download" ${inv.info && !inv.error && !inv.busy ? '' : 'disabled'}>${inv.busy?'<span class="spin light"></span> 만드는 중':`인보이스 받기 (${inc.length}명)`}</button>`,
-      inv.info ? (problems.length ? `⚠ ${escapeHtml(problems[0])}${problems.length>1?` 외 ${problems.length-1}건`:''}` : '세부정산내역만 바뀌고 나머지는 원본 그대로입니다.') : '지난달 인보이스 파일을 올려주세요.')}
+      inv.info ? (problems.length ? `⚠ ${escapeHtml(problems[0])}${problems.length>1?` 외 ${problems.length-1}건`:''}` : '세부정산내역 입력 칸과 인보이스 시트의 건명·기간·담당자만 바뀝니다.') : '지난달 인보이스 파일을 올려주세요.')}
+    ${inv.modal ? invModalHtml() : ''}
   </div>`;
 }
 
@@ -5208,14 +5565,32 @@ function invClick(e){
   if(a==='goto-analysis'){ state.menu='attendance'; state.page='convert'; goStep(state.analyzed ? 2 : (state.selectedPeriod ? 2 : 1)); return; }
   if(a==='remove'){ Object.assign(inv, {file:null, buf:null, info:null, grades:[], rows:[], error:null}); render(); return; }
   if(a==='refill'){ invBuildRowsFromAnalysis(); render(); toast('분석 결과로 다시 채웠습니다.'); return; }
+  if(a==='unlink'){
+    const from = normName(el.dataset.from); const to = state.nameAliases[from]; delete state.nameAliases[from];
+    // 이미 바꿔둔 기록 이름을 원래 읽힌 이름으로 되돌린다
+    state.sources.forEach(s=>{ [...(s.records||[]), ...(s.otRecords||[])].forEach(rc=>{ if(rc.readAs && normName(rc.readAs)===from){ rc.name = rc.readAs; delete rc.readAs; } }); });
+    invBuildRowsFromAnalysis(); if(state.analyzed) rebuildGrids(); render(); toast(`"${el.dataset.from}" 연결을 풀었습니다.`); return;
+  }
   if(a==='add'){ inv.rows.push({name:'', grade:'', store:(inv.rows.find(r=>r.store)||{}).store||'', hire:'', term:'', days: periodBounds(state.selectedPeriod).days, workDays:null, ot:0, night:0, hol:0, holDays:0, srcRow:null, kind:'new', include:true}); render(); return; }
-  if(a==='download'){ invDownload(); return; }
+  if(a==='download'){
+    const problems = invValidate();
+    if(problems.length){ toast(problems.slice(0,3).join(' · '), {error:true}); return; }
+    state.invoice.metaDraft = null; state.invoice.modal = true; render();
+    setTimeout(()=>{ const i = document.querySelector('form[data-inv-form="meta"] input'); if(i) i.focus(); }, 0); return;
+  }
+  if(a==='meta-cancel'){ state.invoice.modal = false; render(); return; }
 }
 function invChange(e){
   const el = e.target.closest('[data-inv]');
   if(!el) return;
   const a = el.dataset.inv, inv = state.invoice;
   if(a==='file'){ if(el.files[0]) invLoadFile(el.files[0]); el.value=''; return; }
+  if(a==='link'){
+    if(!el.value) return;
+    state.nameAliases[normName(el.value)] = el.dataset.to;
+    invBuildRowsFromAnalysis(); if(state.analyzed) rebuildGrids(); render();
+    toast(`근태표의 "${el.value}"을(를) ${el.dataset.to}(으)로 연결했습니다.`); return;
+  }
   const r = inv.rows[+el.dataset.i]; if(!r) return;
   if(a==='inc'){ r.include = el.checked; render(); return; }
   if(a==='f'){
@@ -5232,15 +5607,385 @@ function invDrag(e){
   else if(e.type==='dragleave') zone.classList.remove('drag');
   else if(e.type==='drop'){ zone.classList.remove('drag'); if(e.dataTransfer.files[0]) invLoadFile(e.dataTransfer.files[0]); }
 }
+function invSubmit(e){
+  const form = e.target.closest('form[data-inv-form="meta"]'); if(!form) return;
+  e.preventDefault();
+  const meta = {}; new FormData(form).forEach((v,k)=>{ meta[k] = String(v).trim(); });
+  state.invoice.metaDraft = meta;
+  try{ localStorage.setItem('hrp_invoice_people', JSON.stringify(meta)); }catch(_){}
+  invDownload(meta);
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && state.invoice && state.invoice.modal && !state.invoice.busy){ state.invoice.modal = false; render(); } });
 (function(){
   const app = document.getElementById('app');
+  app.addEventListener('submit', invSubmit);
   app.addEventListener('click', invClick);
   app.addEventListener('change', invChange);
   ['dragover','dragleave','drop'].forEach(t=>app.addEventListener(t, invDrag));
 })();
 
+/* =========================================================================
+   직원 로그인 · 사용자 가입 · 관리자 모드 (Vercel 서버 기능 /api/auth 사용)
+   - Vercel에 올렸을 때만 로그인이 켜진다. claude.ai·내 PC에서 연 파일은 로그인 없이 쓴다.
+   ========================================================================= */
+const API_URL = '/api/auth';
+const AUTH = {mode:'checking', view:'login', token:null, user:null, adminToken:null, adminApp:false, adminData:null,
+  busy:false, msg:null, f:{}, signup:{step:1}, adminModal:false, codeSet:true};
+const AUTH_DEPTS = [{v:'HR-Biz', l:'HR-Biz 사업부'}];
+const AUTH_TEAMS = ['인재사업 1팀','인재사업 2팀'];
+const store = {
+  get(k, s){ try{ return (s?sessionStorage:localStorage).getItem(k); }catch(_){ return null; } },
+  set(k, v, s){ try{ (s?sessionStorage:localStorage).setItem(k, v); }catch(_){} },
+  del(k, s){ try{ (s?sessionStorage:localStorage).removeItem(k); }catch(_){} },
+};
+async function api(action, body, asAdmin){
+  const headers = {'Content-Type':'application/json'};
+  const tok = asAdmin ? AUTH.adminToken : AUTH.token;
+  if(tok) headers.Authorization = 'Bearer ' + tok;
+  let r;
+  try{ r = await fetch(API_URL, {method:'POST', headers, cache:'no-store', body: JSON.stringify({action, ...(body||{})})}); }
+  catch(_){ const e = new Error('서버에 연결하지 못했습니다. 인터넷 연결을 확인해주세요.'); e.status = 0; throw e; }
+  const j = await r.json().catch(()=>({ok:false, error:'서버 응답을 읽지 못했습니다.'}));
+  if(!r.ok || !j.ok){ const e = new Error(j.error || ('오류 '+r.status)); e.status = r.status; e.code = j.code; throw e; }
+  return j;
+}
+async function authInit(){
+  if(!/^https?:$/.test(location.protocol)){ AUTH.mode = 'local'; return; }
+  // GitHub Pages에는 로그인 서버가 없어 로그인 없이 열리게 된다 → Vercel 주소로 안내만 한다
+  if(/\.github\.io$/i.test(location.hostname)){ AUTH.mode = 'moved'; return; }
+  let r, onVercel = /\.vercel\.app$/i.test(location.hostname);
+  try{
+    const ctl = new AbortController(); const tm = setTimeout(()=>ctl.abort(), 8000);
+    r = await fetch(API_URL, {method:'GET', cache:'no-store', signal: ctl.signal});
+    clearTimeout(tm);
+    onVercel = onVercel || !!r.headers.get('x-vercel-id');
+  }catch(_){ AUTH.mode = onVercel ? 'error' : 'local'; return; }
+  const isJson = (r.headers.get('content-type')||'').includes('json');
+  if(!isJson){ AUTH.mode = onVercel ? (r.status===404 ? 'setup-api' : 'error') : 'local'; return; }
+  const j = await r.json().catch(()=>null);
+  if(!j || !j.ok){ AUTH.mode = 'error'; return; }
+  if(!j.ready){ AUTH.mode = 'setup'; return; }
+  AUTH.mode = 'server'; AUTH.codeSet = j.codeSet;
+  try{ const last = JSON.parse(store.get('hrp_last')||'null'); if(last) AUTH.f.login = last; }catch(_){}
+  AUTH.token = store.get('hrp_token');
+  if(AUTH.token){
+    try{ AUTH.user = (await api('me')).user; }
+    catch(_){ AUTH.token = null; store.del('hrp_token'); }
+  }
+  AUTH.adminToken = store.get('hrp_admin_token', true);
+  if(AUTH.adminToken && store.get('hrp_admin_app', true)==='1') AUTH.adminApp = true;
+}
+function authSetMsg(type, text){ AUTH.msg = text ? {type, text} : null; }
+function authLogout(){
+  AUTH.token = null; AUTH.user = null; store.del('hrp_token');
+  AUTH.adminApp = false; store.del('hrp_admin_app', true);
+  AUTH.view = 'login'; authSetMsg('ok', '로그아웃했습니다.'); render();
+}
+function adminExit(){
+  AUTH.adminToken = null; AUTH.adminApp = false; AUTH.adminData = null;
+  store.del('hrp_admin_token', true); store.del('hrp_admin_app', true);
+  AUTH.view = 'login'; authSetMsg(null); render();
+}
+
+/* ---------- 게이트: 앱 대신 보여줄 화면 (없으면 null) ---------- */
+function authGateHtml(){
+  if(AUTH.mode==='local') return null;
+  if(AUTH.mode==='checking') return `<div class="au-page"><div class="au-card au-center"><span class="spin"></span> 접속 정보를 확인하는 중…</div></div>`;
+  if(AUTH.mode==='moved') return `<div class="au-page"><div class="au-wrap"><div class="au-brand"><img src="${ZENIEL_LOGO}" alt="ZENIEL" class="au-logo" /><h1><span class="hr">HR</span> Operations Platform</h1></div>
+    <div class="au-card"><h2>새 주소로 옮겼습니다</h2><p class="au-desc">이 플랫폼은 이제 로그인 후 사용하는 새 주소에서 운영합니다. 관리자에게 받은 주소로 접속해주세요.</p></div></div></div>`;
+  if(AUTH.mode==='setup' || AUTH.mode==='setup-api' || AUTH.mode==='error') return authSetupHtml();
+  if(AUTH.view==='admin' && AUTH.adminToken) return adminHtml();
+  if(AUTH.user || (AUTH.adminApp && AUTH.adminToken)) return null;
+  return authShell(AUTH.view==='signup' ? signupCard() : loginCard());
+}
+function authShell(card){
+  return `<div class="au-page">
+    <button type="button" class="tb-item au-admin-btn" data-au="admin-open"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>관리자</button>
+    <div class="au-wrap">
+      <div class="au-brand">
+        <img src="${ZENIEL_LOGO}" alt="ZENIEL" class="au-logo" />
+        <h1><span class="hr">HR</span> Operations Platform</h1>
+        <p>HR-Biz 사업부 인재사업팀 업무 플랫폼</p>
+      </div>
+      ${card}
+    </div>
+    ${AUTH.adminModal ? adminLoginModal() : ''}
+  </div>`;
+}
+function authMsgHtml(){ return AUTH.msg ? `<div class="au-msg ${AUTH.msg.type}" role="${AUTH.msg.type==='err'?'alert':'status'}">${escapeHtml(AUTH.msg.text)}</div>` : ''; }
+function selDept(id, v){ return `<select id="${id}" name="dept"><option value="">전체</option>${AUTH_DEPTS.map(d=>`<option value="${d.v}" ${v===d.v?'selected':''}>${d.l}</option>`).join('')}</select>`; }
+function selTeam(id, v){ return `<select id="${id}" name="team" required><option value="">소속 선택</option>${AUTH_TEAMS.map(t=>`<option ${v===t?'selected':''}>${t}</option>`).join('')}</select>`; }
+const fv = (form, k) => escapeHtml((AUTH.f[form]||{})[k]||'');
+
+function loginCard(){
+  const f = AUTH.f.login || {};
+  return `<form class="au-card" data-au-form="login" novalidate>
+    <h2>직원 로그인</h2>
+    ${authMsgHtml()}
+    <div class="au-row2">
+      <label class="au-fld"><span>사업부</span>${selDept('auDept', f.dept||'')}</label>
+      <label class="au-fld"><span>소속</span>${selTeam('auTeam', f.team)}</label>
+    </div>
+    <label class="au-fld"><span>사내메일</span><input id="auEmail" name="email" type="email" autocomplete="username" placeholder="name@zeniel.co.kr" value="${fv('login','email')}" required /></label>
+    <label class="au-fld"><span>비밀번호</span><input id="auPw" name="password" type="password" autocomplete="current-password" required /></label>
+    <button type="submit" class="btn primary au-submit" ${AUTH.busy?'disabled':''}>${AUTH.busy?'<span class="spin light"></span> 확인 중':'로그인'}</button>
+    <div class="au-foot">처음 쓰시나요? <button type="button" class="au-link" data-au="to-signup">사용자 가입</button></div>
+    <p class="au-note">비밀번호를 잊었으면 사용자 가입을 다시 하면 새 비밀번호로 바뀝니다.</p>
+  </form>`;
+}
+function signupCard(){
+  const s = AUTH.signup, f = AUTH.f.signup || {};
+  const steps = ['명단 확인','가입 코드','비밀번호'];
+  const head = `<h2>사용자 가입</h2>
+    <ol class="au-steps">${steps.map((t,i)=>`<li class="${s.step===i+1?'on':''} ${s.step>i+1?'done':''}"><b>${s.step>i+1?'✓':i+1}</b>${t}</li>`).join('')}</ol>
+    ${authMsgHtml()}`;
+  let body = '';
+  if(s.step===1){
+    body = `<p class="au-desc">관리자가 등록한 명단의 이름·사내메일과 같아야 가입할 수 있습니다.</p>
+      <div class="au-row2">
+        <label class="au-fld"><span>사업부</span>${selDept('suDept', f.dept||'')}</label>
+        <label class="au-fld"><span>소속</span>${selTeam('suTeam', f.team)}</label>
+      </div>
+      <label class="au-fld"><span>이름</span><input id="suName" name="name" autocomplete="name" value="${fv('signup','name')}" required /></label>
+      <label class="au-fld"><span>사내메일</span><input id="suEmail" name="email" type="email" autocomplete="email" placeholder="name@zeniel.co.kr" value="${fv('signup','email')}" required /></label>
+      <button type="submit" class="btn primary au-submit" ${AUTH.busy?'disabled':''}>${AUTH.busy?'<span class="spin light"></span> 확인 중':'가입 확인'}</button>`;
+  } else if(s.step===2){
+    body = `<p class="au-desc"><b>${escapeHtml(f.name)}</b>님, 명단에서 확인됐습니다.${s.existing?' 이미 가입한 계정이라 비밀번호를 새로 정합니다.':''}<br/>관리자에게 받은 <b>가입 코드 4자리</b>를 입력해주세요.</p>
+      <label class="au-fld"><span>가입 코드</span><input id="suCode" name="code" class="au-code" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="one-time-code" required /></label>
+      <button type="submit" class="btn primary au-submit" ${AUTH.busy?'disabled':''}>${AUTH.busy?'<span class="spin light"></span> 확인 중':'코드 확인'}</button>`;
+  } else {
+    body = `<p class="au-desc">로그인할 때 쓸 비밀번호를 정해주세요. 영문과 숫자를 섞어 8자 이상입니다.</p>
+      <label class="au-fld"><span>비밀번호</span><input id="suPw" name="password" type="password" autocomplete="new-password" required /></label>
+      <label class="au-fld"><span>비밀번호 확인</span><input id="suPw2" name="password2" type="password" autocomplete="new-password" required /></label>
+      <button type="submit" class="btn primary au-submit" ${AUTH.busy?'disabled':''}>${AUTH.busy?'<span class="spin light"></span> 저장 중':'가입 완료'}</button>`;
+  }
+  return `<form class="au-card" data-au-form="signup" novalidate>${head}${body}
+    <div class="au-foot"><button type="button" class="au-link" data-au="to-login">← 로그인으로</button></div>
+  </form>`;
+}
+function adminLoginModal(){
+  return `<div class="au-modal" role="dialog" aria-modal="true" aria-labelledby="auAdminTitle">
+    <form class="au-card au-modal-card" data-au-form="admin-login" novalidate>
+      <h2 id="auAdminTitle">관리자 접속</h2>
+      ${authMsgHtml()}
+      <label class="au-fld"><span>관리자 비밀번호</span><input id="auAdminPw" name="password" type="password" autocomplete="current-password" required /></label>
+      <div class="au-row-btn">
+        <button type="button" class="btn ghost" data-au="admin-close">취소</button>
+        <button type="submit" class="btn primary" ${AUTH.busy?'disabled':''}>${AUTH.busy?'<span class="spin light"></span> 확인 중':'접속'}</button>
+      </div>
+    </form>
+  </div>`;
+}
+function authSetupHtml(){
+  const m = AUTH.mode;
+  const title = m==='setup' ? '서버 저장소를 연결해주세요' : m==='setup-api' ? '로그인 서버 기능을 찾지 못했습니다' : '서버에 연결하지 못했습니다';
+  const body = m==='setup'
+    ? `<ol class="au-ol"><li>Vercel 대시보드에서 이 프로젝트를 엽니다.</li><li><b>Storage</b> 탭 → <b>Create Database</b> → <b>Upstash for Redis</b>를 고르고 무료(Free) 요금제로 만듭니다.</li><li>이 프로젝트에 연결(Connect)한 뒤 <b>Deployments</b> 탭에서 최신 배포의 <b>Redeploy</b>를 누릅니다.</li></ol>`
+    : m==='setup-api'
+    ? `<p class="au-desc">저장소에 <code>api/auth.js</code> 파일이 있는지 확인해주세요. 파일을 올린 뒤 1~2분 지나면 다시 배포됩니다.</p>`
+    : `<p class="au-desc">잠시 후 새로고침해주세요. 계속 안 되면 Vercel 대시보드의 <b>Logs</b>에서 오류를 확인해주세요.</p>`;
+  return `<div class="au-page"><div class="au-wrap"><div class="au-brand"><img src="${ZENIEL_LOGO}" alt="ZENIEL" class="au-logo" /><h1><span class="hr">HR</span> Operations Platform</h1></div>
+    <div class="au-card"><h2>${title}</h2>${body}<button type="button" class="btn primary au-submit" data-au="reload">새로고침</button></div></div></div>`;
+}
+
+/* ---------- 관리자 화면 ---------- */
+function adminHtml(){
+  const d = AUTH.adminData;
+  if(!d) return `<div class="au-page"><div class="au-card au-center"><span class="spin"></span> 관리자 정보를 불러오는 중…</div></div>`;
+  const users = new Map(d.users.map(u=>[u.email, u]));
+  const orphan = d.users.filter(u=>!d.allow.some(a=>a.email===u.email));
+  const fmt = iso => { if(!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  return `<div class="au-admin">
+    <header class="au-admin-head">
+      <div class="au-admin-brand"><img src="${ZENIEL_LOGO}" alt="ZENIEL" /><b>관리자 모드</b><span>HR Operations Platform</span></div>
+      <div class="au-row-btn">
+        <button type="button" class="btn" data-au="admin-to-app">플랫폼 열기</button>
+        <button type="button" class="btn ghost" data-au="admin-exit">관리자 모드 나가기</button>
+      </div>
+    </header>
+    <main class="au-admin-main">
+      ${authMsgHtml()}
+      ${d.isDefaultPassword ? `<div class="au-msg warn">관리자 비밀번호가 처음 값(2026)입니다. 아래에서 바꿔주세요.</div>` : ''}
+      <div class="au-admin-grid">
+        <section class="panel">
+          <h2>가입 코드</h2>
+          <p class="desc">사용자 가입 2단계에서 입력하는 숫자 4자리입니다. 바꾸면 바로 적용됩니다.</p>
+          <div class="au-code-now">${d.code ? escapeHtml(d.code).split('').map(c=>`<span>${c}</span>`).join('') : '<em>아직 정하지 않음 — 정하기 전에는 아무도 가입할 수 없습니다.</em>'}</div>
+          <form class="au-inline" data-au-form="admin-code" novalidate>
+            <input name="code" class="au-code sm" inputmode="numeric" maxlength="4" placeholder="새 코드" aria-label="새 가입 코드 4자리" required />
+            <button type="submit" class="btn primary sm">${d.code?'변경':'정하기'}</button>
+          </form>
+        </section>
+        <section class="panel">
+          <h2>관리자 비밀번호 변경</h2>
+          <form class="au-stack" data-au-form="admin-pw" novalidate>
+            <label class="au-fld"><span>현재 비밀번호</span><input name="current" type="password" autocomplete="current-password" required /></label>
+            <div class="au-row2">
+              <label class="au-fld"><span>새 비밀번호</span><input name="next" type="password" autocomplete="new-password" required /></label>
+              <label class="au-fld"><span>새 비밀번호 확인</span><input name="next2" type="password" autocomplete="new-password" required /></label>
+            </div>
+            <div><button type="submit" class="btn primary sm">변경</button></div>
+          </form>
+        </section>
+      </div>
+      <section class="panel">
+        <div class="run-head" style="margin-bottom:8px;"><div><h2>가입 허용 명단 <span class="pill brand">${d.allow.length}명</span> <span class="pill good">가입 ${d.allow.filter(a=>users.has(a.email)).length}명</span></h2>
+          <p class="desc" style="margin:0;">여기 있는 이름·사내메일과 똑같이 입력해야 가입할 수 있습니다. 명단에서 지우면 그 사람은 바로 로그인할 수 없게 됩니다.</p></div></div>
+        <form class="au-inline" data-au-form="admin-add" novalidate>
+          <input name="name" placeholder="이름" aria-label="이름" required />
+          <input name="email" type="email" placeholder="사내메일" aria-label="사내메일" required style="min-width:220px;" />
+          <select name="team" aria-label="소속"><option value="">소속 무관</option>${AUTH_TEAMS.map(t=>`<option>${t}</option>`).join('')}</select>
+          <button type="submit" class="btn primary sm">추가</button>
+        </form>
+        <details class="au-bulk">
+          <summary>여러 명 한꺼번에 추가 (엑셀에서 복사해 붙여넣기)</summary>
+          <form data-au-form="admin-bulk" novalidate>
+            <textarea name="rows" rows="5" placeholder="한 줄에 한 명: 이름, 사내메일, 소속(선택)&#10;홍길동, hong@zeniel.co.kr, 인재사업 2팀"></textarea>
+            <button type="submit" class="btn sm">붙여넣은 명단 추가</button>
+          </form>
+        </details>
+        <div class="tablewrap emp-wrap" style="margin-top:10px;max-height:420px;">
+          <table class="list emp-table">
+            <thead><tr><th>이름</th><th>사내메일</th><th>소속</th><th>가입</th><th>등록일</th><th></th></tr></thead>
+            <tbody>
+              ${d.allow.length ? d.allow.map(a=>{ const u = users.get(a.email); return `<tr>
+                <td class="emp-name">${escapeHtml(a.name)}</td><td class="mono">${escapeHtml(a.email)}</td><td>${escapeHtml(a.team||'소속 무관')}</td>
+                <td>${u ? `<span class="pill good">가입 · ${escapeHtml(u.team)}</span>` : '<span class="pill">미가입</span>'}</td>
+                <td class="mono muted">${fmt(a.addedAt)}</td>
+                <td style="text-align:right;white-space:nowrap;">${u?`<button type="button" class="btn sm ghost" data-au="admin-reset" data-email="${escapeHtml(a.email)}" title="계정을 지워 다시 가입하게 합니다">비밀번호 초기화</button>`:''}
+                  <button type="button" class="btn sm danger" data-au="admin-remove" data-email="${escapeHtml(a.email)}">명단에서 삭제</button></td>
+              </tr>`; }).join('') : `<tr><td colspan="6" class="muted" style="padding:14px;">아직 명단이 없습니다. 위에서 이름과 사내메일을 추가해주세요.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        ${orphan.length ? `<p class="desc" style="margin-top:10px;">명단에서 빠진 가입 계정 ${orphan.length}개: ${orphan.map(u=>`${escapeHtml(u.name)}(${escapeHtml(u.email)}) <button type="button" class="au-link" data-au="admin-reset" data-email="${escapeHtml(u.email)}">계정 삭제</button>`).join(', ')}</p>` : ''}
+      </section>
+    </main>
+  </div>`;
+}
+async function adminLoad(){
+  try{ AUTH.adminData = await api('adminGet', {}, true); }
+  catch(e){ if(e.status===401){ adminExit(); authSetMsg('err','관리자 접속 시간이 지났습니다. 다시 접속해주세요.'); AUTH.adminModal = true; } else authSetMsg('err', e.message); }
+  render();
+}
+
+/* ---------- 이벤트 ---------- */
+function formData(form){ const o = {}; new FormData(form).forEach((v,k)=>{ o[k] = String(v).trim(); }); return o; }
+async function authRun(fn){
+  if(AUTH.busy) return;
+  AUTH.busy = true; render();
+  try{ await fn(); }
+  catch(e){ if(e.code==='admin_required'){ adminExit(); AUTH.adminModal = true; authSetMsg('err','관리자 접속 시간이 지났습니다. 다시 접속해주세요.'); } else authSetMsg('err', e.message); }
+  AUTH.busy = false; render();
+}
+async function authSubmit(e){
+  const form = e.target.closest('form[data-au-form]'); if(!form) return;
+  e.preventDefault();
+  const kind = form.dataset.auForm, v = formData(form);
+  if(kind==='login'){
+    AUTH.f.login = {dept:v.dept, team:v.team, email:v.email};
+    if(!v.team) return authSetMsg('err','소속을 선택해주세요.'), render();
+    if(!v.email || !v.password) return authSetMsg('err','사내메일과 비밀번호를 입력해주세요.'), render();
+    return authRun(async()=>{
+      const j = await api('login', v);
+      AUTH.token = j.token; AUTH.user = j.user; store.set('hrp_token', j.token); authSetMsg(null);
+      store.set('hrp_last', JSON.stringify({dept:v.dept, team:v.team, email:v.email}));
+      toast(`${j.user.name}님, 환영합니다.`);
+    });
+  }
+  if(kind==='signup'){
+    const s = AUTH.signup;
+    if(s.step===1){
+      AUTH.f.signup = {dept:v.dept, team:v.team, name:v.name, email:v.email};
+      if(!v.dept || !v.team) return authSetMsg('err','사업부와 소속을 선택해주세요.'), render();
+      if(!v.name || !v.email) return authSetMsg('err','이름과 사내메일을 입력해주세요.'), render();
+      return authRun(async()=>{ const j = await api('signupCheck', AUTH.f.signup); s.existing = j.existing; s.step = 2; authSetMsg(null); });
+    }
+    if(s.step===2){
+      if(!/^\d{4}$/.test(v.code||'')) return authSetMsg('err','가입 코드는 숫자 4자리입니다.'), render();
+      return authRun(async()=>{ const j = await api('signupVerify', {...AUTH.f.signup, code:v.code}); s.ticket = j.ticket; s.step = 3; authSetMsg(null); });
+    }
+    if(s.step===3){
+      if(v.password !== v.password2) return authSetMsg('err','비밀번호 확인이 다릅니다.'), render();
+      return authRun(async()=>{
+        const j = await api('signupComplete', {ticket:s.ticket, password:v.password});
+        AUTH.token = j.token; AUTH.user = j.user; store.set('hrp_token', j.token);
+        AUTH.signup = {step:1}; AUTH.view = 'login'; authSetMsg(null);
+        toast(j.reset ? '비밀번호를 새로 정했습니다.' : `가입했습니다. ${j.user.name}님, 환영합니다.`);
+      });
+    }
+  }
+  if(kind==='admin-login'){
+    if(!v.password) return authSetMsg('err','관리자 비밀번호를 입력해주세요.'), render();
+    return authRun(async()=>{
+      const j = await api('adminLogin', v);
+      AUTH.adminToken = j.token; store.set('hrp_admin_token', j.token, true);
+      AUTH.adminModal = false; AUTH.view = 'admin'; authSetMsg(null);
+      AUTH.adminData = null; setTimeout(adminLoad, 0);
+    });
+  }
+  if(kind==='admin-code'){
+    if(!/^\d{4}$/.test(v.code||'')) return authSetMsg('err','가입 코드는 숫자 4자리로 정해주세요.'), render();
+    return authRun(async()=>{ await api('adminSetCode', v, true); AUTH.adminData = (await api('adminGet', {}, true)); authSetMsg('ok', `가입 코드를 ${v.code}(으)로 정했습니다.`); });
+  }
+  if(kind==='admin-pw'){
+    if(v.next !== v.next2) return authSetMsg('err','새 비밀번호 확인이 다릅니다.'), render();
+    return authRun(async()=>{ await api('adminSetPassword', v, true); AUTH.adminData = (await api('adminGet', {}, true)); authSetMsg('ok','관리자 비밀번호를 바꿨습니다.'); });
+  }
+  if(kind==='admin-add' || kind==='admin-bulk'){
+    let entries;
+    if(kind==='admin-add') entries = [{name:v.name, email:v.email, team:v.team}];
+    else entries = (v.rows||'').split(/\r?\n/).map(l=>l.split(/[,\t]/).map(x=>x.trim())).filter(c=>c[0]||c[1]).map(c=>({name:c[0], email:c[1]||'', team:c[2]||''}));
+    if(!entries.length || entries.some(x=>!x.name || !x.email)) return authSetMsg('err','이름과 사내메일을 모두 입력해주세요.'), render();
+    return authRun(async()=>{
+      const j = await api('adminAddAllow', {entries}, true);
+      AUTH.adminData = await api('adminGet', {}, true);
+      authSetMsg(j.skipped.length?'warn':'ok', `${j.added}명을 명단에 넣었습니다.${j.skipped.length?` 넣지 못한 ${j.skipped.length}명: ${j.skipped.join(' / ')}`:''}`);
+    });
+  }
+}
+function authClick(e){
+  const el = e.target.closest('[data-au]');
+  if(!el || el.disabled) return;
+  const a = el.dataset.au;
+  if(a==='to-signup'){ AUTH.view='signup'; AUTH.signup={step:1}; AUTH.f.signup = {dept:(AUTH.f.login||{}).dept, team:(AUTH.f.login||{}).team, email:(AUTH.f.login||{}).email}; authSetMsg(null); render(); return; }
+  if(a==='to-login'){ AUTH.view='login'; authSetMsg(null); render(); return; }
+  if(a==='admin-open'){ AUTH.adminModal = true; authSetMsg(null); render(); setTimeout(()=>{ const i=document.getElementById('auAdminPw'); if(i) i.focus(); }, 0); return; }
+  if(a==='admin-close'){ AUTH.adminModal = false; authSetMsg(null); render(); return; }
+  if(a==='admin-exit'){ adminExit(); return; }
+  if(a==='admin-to-app'){ AUTH.adminApp = true; store.set('hrp_admin_app','1',true); AUTH.view='login'; authSetMsg(null); render(); return; }
+  if(a==='to-admin'){ AUTH.view='admin'; AUTH.adminData=null; render(); adminLoad(); return; }
+  if(a==='logout'){ authLogout(); return; }
+  if(a==='reload'){ location.reload(); return; }
+  if(a==='admin-remove'){
+    const email = el.dataset.email;
+    if(el.dataset.confirm!=='1'){ el.dataset.confirm='1'; el.textContent='한 번 더 누르면 삭제'; setTimeout(()=>{ if(el.isConnected){ el.dataset.confirm=''; el.textContent='명단에서 삭제'; } }, 3000); return; }
+    return authRun(async()=>{ await api('adminRemoveAllow', {email, alsoUser:true}, true); AUTH.adminData = await api('adminGet', {}, true); authSetMsg('ok', `${email}을(를) 명단에서 지웠습니다.`); });
+  }
+  if(a==='admin-reset'){
+    const email = el.dataset.email;
+    if(el.dataset.confirm!=='1'){ el.dataset.confirm='1'; const t=el.textContent; el.textContent='한 번 더 누르면 실행'; setTimeout(()=>{ if(el.isConnected){ el.dataset.confirm=''; el.textContent=t; } }, 3000); return; }
+    return authRun(async()=>{ await api('adminRemoveUser', {email}, true); AUTH.adminData = await api('adminGet', {}, true); authSetMsg('ok', `${email} 계정을 지웠습니다. 다시 가입하면 새 비밀번호로 쓸 수 있습니다.`); });
+  }
+}
+function authKey(e){ if(e.key==='Escape' && AUTH.adminModal){ AUTH.adminModal=false; authSetMsg(null); render(); } }
+(function(){
+  const app = document.getElementById('app');
+  app.addEventListener('submit', authSubmit);
+  app.addEventListener('click', authClick);
+  document.addEventListener('keydown', authKey);
+})();
+// 앱 상단에 보여줄 로그인 정보
+function authChipHtml(){
+  if(AUTH.mode!=='server') return '';
+  if(AUTH.user) return `<div class="tb-user"><span class="tb-user-name"><b>${escapeHtml(AUTH.user.name)}</b> · ${escapeHtml(AUTH.user.team)}</span><button type="button" class="btn sm ghost" data-au="logout">로그아웃</button></div>`;
+  if(AUTH.adminApp) return `<div class="tb-user"><span class="pill warn">관리자</span><button type="button" class="btn sm" data-au="to-admin">관리자 화면</button><button type="button" class="btn sm ghost" data-au="admin-exit">나가기</button></div>`;
+  return '';
+}
+
 (async function boot(){
-  await Promise.all([loadSiteRegistry(), loadRuleArchive()]);
+  render();
+  await Promise.all([loadSiteRegistry(), loadRuleArchive(), authInit()]);
   render();
 })();
 </script>
