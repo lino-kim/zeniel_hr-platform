@@ -360,6 +360,8 @@
   .tb-user{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px;}
   .tb-user-name{font-size:12.5px;color:var(--steel);white-space:nowrap;}
   .tb-user-name b{color:var(--ink);}
+  .au-local{margin-top:14px;}
+  .au-local h2{font-size:15px;}
   @media (max-width:1100px){ .tb-user-name{display:none;} }
   @media (max-width:520px){ .au-row2{grid-template-columns:1fr;} .au-card{padding:20px 18px 16px;} }
   .inv-meta{max-width:560px;max-height:calc(100vh - 32px);overflow:auto;}
@@ -6235,6 +6237,11 @@ async function api(action, body, asAdmin){
   return j;
 }
 async function authInit(){
+  await authDetect();
+  // 서버 저장소가 아직 없을 때 "로컬 저장으로 사용"을 고른 브라우저는 로그인 없이 연다 (서버가 준비되면 자동으로 로그인 방식)
+  if(['setup','setup-api','error'].includes(AUTH.mode) && store.get('hrp_local')==='1'){ AUTH.mode = 'local'; AUTH.localWeb = true; }
+}
+async function authDetect(){
   if(!/^https?:$/.test(location.protocol)){ AUTH.mode = 'local'; return; }
   // GitHub Pages에는 로그인 서버가 없어 로그인 없이 열리게 된다 → Vercel 주소로 안내만 한다
   if(/\.github\.io$/i.test(location.hostname)){ AUTH.mode = 'moved'; return; }
@@ -6370,7 +6377,10 @@ function authSetupHtml(){
     ? `<p class="au-desc">저장소에 <code>api/auth.js</code> 파일이 있는지 확인해주세요. 파일을 올린 뒤 1~2분 지나면 다시 배포됩니다.</p>`
     : `<p class="au-desc">잠시 후 새로고침해주세요. 계속 안 되면 Vercel 대시보드의 <b>Logs</b>에서 오류를 확인해주세요.</p>`;
   return `<div class="au-page"><div class="au-wrap"><div class="au-brand"><img src="${ZENIEL_LOGO}" alt="ZENIEL" class="au-logo" /><h1><span class="hr">HR</span> Operations Platform</h1></div>
-    <div class="au-card"><h2>${title}</h2>${body}<button type="button" class="btn primary au-submit" data-au="reload">새로고침</button></div></div></div>`;
+    <div class="au-card"><h2>${title}</h2>${body}<button type="button" class="btn primary au-submit" data-au="reload">새로고침</button></div>
+    <div class="au-card au-local"><h2>우선 로그인 없이 사용하기</h2>
+      <p class="au-desc">서버 저장소 연결 전에도 바로 쓸 수 있습니다. 현장·직원명단·규칙은 <b>지금 이 컴퓨터의 이 브라우저</b>에만 저장되고, 다른 PC나 다른 직원과는 공유되지 않습니다. 나중에 서버 저장소를 연결하면 자동으로 로그인 화면으로 바뀝니다.</p>
+      <button type="button" class="btn au-submit" data-au="use-local">로컬 저장으로 사용하기</button></div></div></div>`;
 }
 
 /* ---------- 관리자 화면 ---------- */
@@ -6548,6 +6558,8 @@ function authClick(e){
   if(a==='to-admin'){ AUTH.view='admin'; AUTH.adminData=null; render(); adminLoad(); return; }
   if(a==='logout'){ authLogout(); return; }
   if(a==='reload'){ location.reload(); return; }
+  if(a==='use-local'){ store.set('hrp_local','1'); AUTH.mode = 'local'; AUTH.localWeb = true; render(); return; }
+  if(a==='local-off'){ if(!confirm('로컬 저장 모드를 끄고 서버 연결 안내 화면으로 돌아갈까요? (이 브라우저에 저장된 현장·규칙은 지워지지 않습니다)')) return; store.del('hrp_local'); location.reload(); return; }
   if(a==='allow-export'){
     const d = AUTH.adminData; if(!d) return;
     const users = new Map(d.users.map(u=>[u.email,u]));
@@ -6627,6 +6639,7 @@ function authKey(e){ if(e.key==='Escape' && AUTH.adminModal){ AUTH.adminModal=fa
 })();
 // 앱 상단에 보여줄 로그인 정보
 function authChipHtml(){
+  if(AUTH.mode==='local' && AUTH.localWeb) return `<div class="tb-user"><span class="pill warn" title="현장·규칙이 이 브라우저에만 저장됩니다. 설정 백업(.json)을 가끔 내려받아 두세요.">로컬 저장 모드</span><button type="button" class="btn sm ghost" data-au="local-off" title="서버 저장소를 연결한 뒤 로그인 방식으로 바꿀 때">끄기</button></div>`;
   if(AUTH.mode!=='server') return '';
   if(AUTH.user) return `<div class="tb-user"><span class="tb-user-name"><b>${escapeHtml(AUTH.user.name)}</b> · ${escapeHtml(AUTH.user.team)}</span><button type="button" class="btn sm ghost" data-au="logout">로그아웃</button></div>`;
   if(AUTH.adminApp) return `<div class="tb-user"><span class="pill warn">관리자</span><button type="button" class="btn sm" data-au="to-admin">관리자 화면</button><button type="button" class="btn sm ghost" data-au="admin-exit">나가기</button></div>`;
