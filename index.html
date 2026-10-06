@@ -3377,6 +3377,7 @@ function applyOtMap(raw, map, weekendDays){
       if(rule.src==='@sum'){
         // 합계 행(일수): 일수 × 8시간 × 60분을 그 달 1일 칸에 한 번에 넣는다
         const v = otValue(rec, rule); if(!(v>0)) return;
+        if(rule.conv==='day' && rec.blankDays) return;   // 입사·퇴사로 한 달을 다 채우지 않은 직원은 미사용 휴무를 휴일근무로 보지 않음
         const m = Math.round(rule.conv==='day' ? v * perDay : v);
         if(m>0) out.push({name: rec.name, date: rec.date, category: cat, minutes: m, dayCount: rule.conv==='day' ? v : undefined});
         return;
@@ -3527,7 +3528,15 @@ function tryParseOvertimeRaw(wb, nightThresholdMin, selectedPeriod){
         const nightCols = cols.filter(x=>/야간|심야/.test(x.label));
         let nightEmpty = true;
         nightCols.forEach(nc=>{ for(let dr=R+1; dr<=Math.min(range.e.r,R+40); dr++){ const c=ws[XLSX.utils.encode_cell({r:dr,c:nc.c})]; if(c && c.v!=null && String(c.v).trim()!=='' && String(c.v).trim()!=='-'){ nightEmpty=false; return; } } });
-        return {name:String(nameCell.v).trim(), col0:c0, cols, nightEmpty};
+        // 입사 전·퇴사 후처럼 출근·퇴근 칸이 모두 빈 날 (한 달을 다 채우지 않은 직원 판단용)
+        let blankDays = 0;
+        for(let dr=R+1; dr<=Math.min(range.e.r,R+40); dr++){
+          if(!dateParts(ws[XLSX.utils.encode_cell({r:dr,c:dateCol})])) continue;
+          const a = ws[XLSX.utils.encode_cell({r:dr,c:c0})], b = ws[XLSX.utils.encode_cell({r:dr,c:c0+1})];
+          const empty = x => !x || x.v==null || String(x.v).trim()==='';
+          if(empty(a) && empty(b)) blankDays++;
+        }
+        return {name:String(nameCell.v).trim(), col0:c0, cols, nightEmpty, blankDays};
       }).filter(Boolean);
       if(!employees.length) continue;
       // 숫자로 적힌 칸의 단위를 칸 이름별로 판단 (모든 직원 값을 함께 봄): 24 넘는 값이 있으면 분, 아니면 시간
@@ -3565,12 +3574,18 @@ function tryParseOvertimeRaw(wb, nightThresholdMin, selectedPeriod){
           for(let C=range.s.c; C<hits[0]; C++){ const t = txt(dr,C); if(isLabel(t)){ rowLabel = t; break; } }
           employees.forEach((emp, ei)=>{
             const end = ei+1<employees.length ? employees[ei+1].col0 : Math.min(range.e.c+1, emp.col0+10);
-            let label = rowLabel, val = null;
+            const num = (r,c)=>cellNum(ws[XLSX.utils.encode_cell({r,c})]);
+            const put = (label, v)=>{ if(label && v!=null){ emp.sums = emp.sums || {}; if(!(label in emp.sums)) emp.sums[label] = v; } };
+            let sawLabel = false;
+            // 직원 칸 안의 이름표: 바로 오른쪽 숫자, 없으면 바로 아래 숫자 (예: "미사용 휴무 개수" | 3.00 / "휴일근무(h)" 아래 1440)
             for(let C=emp.col0; C<end; C++){
-              const t = txt(dr,C); if(isLabel(t)){ label = t; continue; }
-              const v = cellNum(ws[XLSX.utils.encode_cell({r:dr,c:C})]); if(v!=null) val = v;
+              const t = txt(dr,C); if(!isLabel(t)) continue;
+              sawLabel = true;
+              const right = C+1<end && !isLabel(txt(dr,C+1)) ? num(dr,C+1) : null;
+              put(t, right!=null ? right : num(dr+1,C));
             }
-            if(label && val!=null){ emp.sums = emp.sums || {}; emp.sums[label] = val; }
+            // 행 이름이 왼쪽에만 있는 양식: 직원 칸의 마지막 숫자
+            if(!sawLabel && rowLabel){ let val=null; for(let C=emp.col0; C<end; C++){ const v=num(dr,C); if(v!=null) val=v; } put(rowLabel, val); }
           });
         }
       }
@@ -3583,9 +3598,17 @@ function tryParseOvertimeRaw(wb, nightThresholdMin, selectedPeriod){
         employees.forEach(emp=>{
           const rec = {name: emp.name, date: dateStr, cols:{}, endNight:0, nightEmpty: emp.nightEmpty};
           if(i===0 && emp.sums) rec.sums = emp.sums;   // 합계 행 값은 그 달 1일 기록에 붙인다
+          if(i===0 && emp.blankDays) rec.blankDays = emp.blankDays;
           emp.cols.forEach(cc=>{ const m = minutesFromCell(ws[XLSX.utils.encode_cell({r:dr,c:cc.c})], unitOf[cc.label]); if(m!=null && m>0) rec.cols[cc.label] = (rec.cols[cc.label]||0) + m; });
           const endMin = minutesFromCell(ws[XLSX.utils.encode_cell({r:dr,c:emp.col0+1})]);
+          const startMin = minutesFromCell(ws[XLSX.utils.encode_cell({r:dr,c:emp.col0})]);
           if(endMin!=null && endMin > nightThresholdMin) rec.endNight = endMin - nightThresholdMin;
+          // 야간 칸 점검: 22:00 전에 끝난 날(밤샘 아님)이거나 8시간(22~06시)을 넘는 값은 근태표 수식 오류로 보고 0으로
+          Object.keys(rec.cols).forEach(k=>{
+            if(!/야간|심야/.test(k) || !(rec.cols[k]>0)) return;
+            const sameDayEarly = endMin!=null && startMin!=null && startMin < endMin && endMin <= nightThresholdMin && endMin >= 360;
+            if(sameDayEarly || rec.cols[k] > 480){ (rec.otWarn = rec.otWarn || []).push(`${k} ${Math.round(rec.cols[k])}분 → 0 (퇴근 ${endMin!=null?`${Math.floor(endMin/60)}:${String(endMin%60).padStart(2,'0')}`:'?'})`); rec.cols[k] = 0; }
+          });
           // 머리글 이름은 있되 값이 없는 칸도 "있는 칸"으로 기록해 둔다 (규칙이 칸을 찾을 수 있게)
           emp.cols.forEach(cc=>{ if(!(cc.label in rec.cols)) rec.cols[cc.label] = 0; });
           raw.push(rec);
@@ -4932,7 +4955,15 @@ function wzStep3(){
       ${state.sites.map(site=>siteGrid(site)).join('') || '<div class="notice">표시할 직원이 없습니다.</div>'}`;
   } else if(tab==='ot'){
     const miss = otMissingRules();
-    body = (miss.length ? `<div class="errbox"><h3>⚠ 시간외 항목 규칙의 칸을 이번 근태표에서 찾지 못했습니다</h3><ul>${miss.map(m=>`<li><b>${m.cat}</b> ← "${escapeHtml(m.col)}" 칸 없음 — ${m.night?'퇴근시간(22시 이후)으로 계산했습니다':'0으로 들어갑니다'}</li>`).join('')}</ul><button type="button" class="btn sm" data-rx="goto-otmap">규칙 관리 › 시간외항목에서 칸 고르기</button></div>` : '') + overtimeReviewTable();
+    const fixes = [], partial = [];
+    const hr = (state.otMap||defaultOtMap()).휴일근무;
+    state.sources.forEach(s=>(s.otRaw||[]).forEach(x=>{
+      (x.otWarn||[]).forEach(t=>fixes.push(`${escapeHtml(x.name)} ${x.date.slice(5).replace('-','/')} ${escapeHtml(t)}`));
+      if(hr && hr.src==='@sum' && hr.conv==='day' && x.blankDays && x.sums){ const k = otColFor(x, hr); if(k && x.sums[k.slice(5)]>0) partial.push(`${escapeHtml(x.name)} (${hr.col} ${x.sums[k.slice(5)]}일, 근태 빈 날 ${x.blankDays}일)`); }
+    }));
+    const notes = (fixes.length ? `<div class="notice" style="margin-bottom:10px;"><b>근태표 야간근무 칸 보정 ${fixes.length}건</b> — 22시 전에 퇴근한 날이거나 8시간을 넘는 야간 값은 근태표 수식 오류로 보고 0으로 넣었습니다.<ul style="margin:6px 0 0 18px;">${fixes.map(t=>`<li>${t}</li>`).join('')}</ul></div>` : '')
+      + (partial.length ? `<div class="notice" style="margin-bottom:10px;"><b>휴일근무 제외 ${partial.length}명</b> — 입사·퇴사로 한 달을 다 채우지 않아 미사용 휴무를 휴일근무로 넣지 않았습니다: ${partial.join(', ')}</div>` : '');
+    body = notes + (miss.length ? `<div class="errbox"><h3>⚠ 시간외 항목 규칙의 칸을 이번 근태표에서 찾지 못했습니다</h3><ul>${miss.map(m=>`<li><b>${m.cat}</b> ← "${escapeHtml(m.col)}" 칸 없음 — ${m.night?'퇴근시간(22시 이후)으로 계산했습니다':'0으로 들어갑니다'}</li>`).join('')}</ul><button type="button" class="btn sm" data-rx="goto-otmap">규칙 관리 › 시간외항목에서 칸 고르기</button></div>` : '') + overtimeReviewTable();
   } else if(tab==='emps'){
     body = `<p class="desc">여기서 바꾸면 시간외수당(연장·야간) 계산과 양식의 월/일/휴무일수 칸에 바로 반영됩니다.</p>${secEmps()}`;
   } else {
@@ -5284,6 +5315,11 @@ function invInspect(doc, shared){
 }
 
 /* ---- 직급참고시트의 구분 목록 (VLOOKUP 대상) ---- */
+// 직급참고시트의 직급 순서 → 정렬 순위 (없는 직급은 맨 뒤)
+function invGradeRank(grades){
+  const list = (grades||[]).map(g=>String(g).replace(/\s+/g,''));
+  return g => { const k = String(g||'').replace(/\s+/g,''); const i = list.indexOf(k); return i<0 ? list.length : i; };
+}
 async function invGrades(ctx){
   // 세부정산내역 수식에서 VLOOKUP 범위를 찾는다: '시트'!$B$3:$H$7
   const sheetXml = await ctx.zip.file(ctx.sheet.path).async('string');
@@ -5851,6 +5887,11 @@ function invBuildRowsFromAnalysis(){
     rows.forEach(r=>{ if(r.kind==='notInRoster'){ r.kind = 'rosterMismatch'; r.include = true; } });
     inv.basis.suspicious = dropCount;
   }
+  // 화면 표도 직급참고시트 순서로 (같은 직급은 기존 순서)
+  const gRank = invGradeRank(inv.grades);
+  rows.forEach((r,i)=>r._ord=i);
+  rows.sort((a,b)=> gRank(a.grade) - gRank(b.grade) || a._ord - b._ord);
+  rows.forEach(r=>delete r._ord);
   inv.rows = rows;
   inv.filledAt = Date.now();
 }
@@ -5896,8 +5937,9 @@ async function invDownload(meta){
       days: r.days===''||r.days==null ? null : +r.days,
       ot: +r.ot||0, night: +r.night||0, hol: +r.hol||0, srcRow: r.srcRow,
     }));
-    // 기존 직원은 원래 순서, 새 직원은 뒤에
-    plan.sort((a,b)=> (a.srcRow==null) - (b.srcRow==null) || (a.srcRow||0) - (b.srcRow||0));
+    // 직급참고시트 순서(총괄매니저 → 관리매니저 → …)대로, 같은 직급은 기존 순서, 새 직원은 그 직급의 뒤에
+    const gRank = invGradeRank(inv.grades);
+    plan.sort((a,b)=> gRank(a.grade) - gRank(b.grade) || (a.srcRow==null) - (b.srcRow==null) || (a.srcRow||0) - (b.srcRow||0));
     const blob = await invBuild(ctx, plan, {period: state.selectedPeriod, meta});
     const base = inv.file.name.replace(/\.xlsx?$/i,'');
     const [py, pm] = state.selectedPeriod.split('-');
